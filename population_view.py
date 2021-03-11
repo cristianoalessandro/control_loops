@@ -97,8 +97,11 @@ def plotPopulation(time_v, pop_pos, pop_neg, title=''):
     ax[0].scatter(ts_n, y_n, marker='.', s=1)
     ax[0].set_ylabel("raster")
     pop_pos.plot_rate(time_v, 15, ax=ax[1],color="r")
-    pop_neg.plot_rate(time_v, 15, ax=ax[1], title='PSTH')
+    pop_neg.plot_rate(time_v, 15, ax=ax[1], title='PSTH (Hz)')
     ax[0].set_title(title)
+    ax[0].set_ylim( bottom=-(len(pop_neg.pop)+1), top=len(pop_pos.pop)+1 )
+
+    return fig, ax
 
 
 ############################ POPULATION VIEW #############################
@@ -176,6 +179,7 @@ class PopView:
             ax.plot(bins[:-1],rate_sm,**kwargs)
         ax.set(xlim=(t_init, t_end))
         ax.set_ylabel(title)
+        
 
 
 

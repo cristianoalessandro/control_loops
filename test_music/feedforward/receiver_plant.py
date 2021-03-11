@@ -149,4 +149,8 @@ plt.plot(spkRate_neg)
 
 plt.figure()
 plt.plot(spkRate_pos-spkRate_neg)
+plt.xlabel("time (ms)")
+plt.ylabel("spike rate positive - negative")
+plt.legend(['x','y'])
+plt.savefig("plant_in_pos-neg.png")
 plt.show()

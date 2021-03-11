@@ -5,7 +5,7 @@ import numpy as np
 import time
 import sys
 import music
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # Just to get the following imports right!
 sys.path.insert(1, '../../')
@@ -120,3 +120,24 @@ for j in range(njt):
 ###################### SIMULATE
 # Simulate
 nest.Simulate(time_span)
+
+#############
+
+lgd = ['x','y']
+
+fig, ax = plt.subplots(2,1)
+for i in range(njt):
+    mc.out_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='out')
+    mc.out_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b')
+
+    b,c,pos_r = mc.out_p[i].computePSTH(time_vect,buffer_sz=25)
+    b,c,neg_r = mc.out_n[i].computePSTH(time_vect,buffer_sz=25)
+    if i==0:
+        plt.figure()
+    plt.plot(b[:-1],pos_r-neg_r)
+    plt.xlabel("time (ms)")
+    plt.ylabel("spike rate positive - negative")
+    plt.legend(lgd)
+
+plt.savefig("mctx_out_pos-neg.png")
+plt.show()
