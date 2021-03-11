@@ -44,8 +44,9 @@ class Events(list):
 
 ###################### UTIL ######################
 
-def new_spike_detector(pop):
+def new_spike_detector(pop,**kwargs):
     spike_detector = nest.Create("spike_detector")
+    nest.SetStatus(spike_detector, params=kwargs)
     nest.Connect(pop, spike_detector)
     return spike_detector
 
@@ -102,9 +103,15 @@ def plotPopulation(time_v, pop_pos, pop_neg, title=''):
 
 ############################ POPULATION VIEW #############################
 class PopView:
-    def __init__(self, pop, time_vect):
+    def __init__(self, pop, time_vect, to_file=False, label=''):
         self.pop = pop
-        self.detector = new_spike_detector(pop)
+        if to_file==True:
+            if label=='':
+                raise Exception("To save into file, you need to specify a label")
+            param_file = {"to_file": True, "label":label, "file_extension": "dat"}
+            self.detector = new_spike_detector(pop,**param_file)
+        else:
+            self.detector = new_spike_detector(pop)
 
         self.total_n_events = 0
         self.rates_history = []

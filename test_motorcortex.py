@@ -31,11 +31,12 @@ time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint
 pthDat = "./data/"
 
 init_pos = np.array([0.0,0.0])
-tgt_pos  = np.array([10.0,0.0])
+tgt_pos  = np.array([10.0,10.0])
 trj, pol = tj.minimumJerk(init_pos, tgt_pos, time_vect)
 
 tgt_real = np.array([15.0,0.0])
 trj_real, pol = tj.minimumJerk(init_pos, tgt_real, time_vect)
+trj_real = trj
 
 # Error in joint trajectory
 trj_err = trj-trj_real

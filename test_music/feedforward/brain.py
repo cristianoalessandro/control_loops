@@ -99,11 +99,11 @@ ii=0
 for j in range(njt):
     for i, n in enumerate(mc.out_p[j].pop):
         nest.Connect([n], proxy_out, "one_to_one",{'music_channel': ii})
-        print(ii,n)
+        #print(ii,n)
         ii=ii+1
     for i, n in enumerate(mc.out_n[j].pop):
         nest.Connect([n], proxy_out, "one_to_one",{'music_channel': ii})
-        print(ii,n)
+        #print(ii,n)
         ii=ii+1
 
 # THIS DOES NOT WORK!
