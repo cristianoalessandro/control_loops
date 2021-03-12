@@ -10,7 +10,7 @@ from population_view import plotPopulation
 nest.Install("util_neurons_module")
 res = nest.GetKernelStatus("resolution")
 
-flagSaveFig = True
+flagSaveFig = False
 figPath = './fig/planner/'
 pthDat = "./data/"
 

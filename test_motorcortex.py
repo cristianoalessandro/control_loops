@@ -18,7 +18,7 @@ msd = int( time.time() * 1000.0 )
 N_vp = nest.GetKernelStatus(['total_num_virtual_procs'])[0]
 nest.SetKernelStatus({'rng_seeds' : range(msd+N_vp+1, msd+2*N_vp+1)})
 
-flagSaveFig = True
+flagSaveFig = False
 figPath = './fig/motorcortex/'
 pthDat = "./data/"
 
