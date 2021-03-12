@@ -8,7 +8,7 @@ import music
 import matplotlib.pyplot as plt
 
 # Just to get the following imports right!
-sys.path.insert(1, '../../')
+sys.path.insert(1, '../')
 
 import trajectories as tj
 from motorcortex import MotorCortex
