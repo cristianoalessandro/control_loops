@@ -139,5 +139,5 @@ for i in range(njt):
     plt.ylabel("spike rate positive - negative")
     plt.legend(lgd)
 
-plt.savefig("mctx_out_pos-neg.png")
+#plt.savefig("mctx_out_pos-neg.png")
 plt.show()
