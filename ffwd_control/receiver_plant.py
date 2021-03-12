@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import ctypes
 ctypes.CDLL("libmpi.so", mode=ctypes.RTLD_GLOBAL)
 
+pthDat = "./data/"
+
 N   = 5  # Number of postive/negative neurons (will eventually come from an external parameter)
 njt = 2  # Number of joints (will eventually come from plant object)
 
@@ -83,11 +85,11 @@ f_neg  = [] # Negative
 fr_neg = []
 for i in range(njt):
     # Spikes
-    tmp = "receiver_j"+str(i)
+    tmp = pthDat+"receiver_j"+str(i)
     f_pos.append( open(tmp+"_p.txt", "a") )
     f_neg.append( open(tmp+"_n.txt", "a") )
     # Spike rates
-    tmp = "rate_j"+str(i)
+    tmp = pthDat+"rate_j"+str(i)
     fr_pos.append( open(tmp+"_p.txt", "a") )
     fr_neg.append( open(tmp+"_n.txt", "a") )
 
