@@ -57,6 +57,7 @@ def minimumJerk_dddt(x_init, x_des, timespan):
     return pp, pol
 
 
+# Get the extremes of the second derivative of a min-jerk trajectory
 def minJerk_ddt_minmax(x_init, x_des, timespan):
 
     T_max   = timespan[ len(timespan)-1 ]

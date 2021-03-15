@@ -25,7 +25,7 @@ res = nest.GetKernelStatus("resolution")
 # N_vp = nest.GetKernelStatus(['total_num_virtual_procs'])[0]
 # nest.SetKernelStatus({'rng_seeds' : range(msd+N_vp+1, msd+2*N_vp+1)})
 
-m      = 5.0
+m      = 2.0
 ptMass = PointMass(mass=m)
 njt    = ptMass.numVariables()
 
@@ -33,12 +33,12 @@ njt    = ptMass.numVariables()
 N = 5
 
 time_span = 1000.0
-time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
+time_vect = np.linspace(0, time_span/1e3, num=int(np.round(time_span/res)), endpoint=True)
 
 pthDat = "./data/"
 
 init_pos = np.array([0.0,0.0])
-tgt_pos  = np.array([10.0,10.0])
+tgt_pos  = np.array([0.5,0.5])
 trj, pol = tj.minimumJerk(init_pos, tgt_pos, time_vect)
 
 #tgt_real = np.array([15.0,0.0])
@@ -106,29 +106,26 @@ for j in range(njt):
         #print(ii,n)
         ii=ii+1
 
-# THIS DOES NOT WORK!
-# nest.Connect([n], proxy_out, "one_to_one",{'music_channel': n})
-
-# # 80 neurons (i.e. channels) in total
-# print(ii)
-
-# n1 = nest.Create('poisson_generator', 5, [{'rate': 10.0}])
-# proxy_out = nest.Create('music_event_out_proxy', 1, params = {'port_name':'music_out'})
-# for i, n in enumerate(n1):
-#     nest.Connect([n], proxy_out, "one_to_one",{'music_channel': i})
 
 ###################### SIMULATE
 # Simulate
 nest.Simulate(time_span)
 
-#############
+############# plot
+
+
+motCmd = mc.getMotorCommands()
+fig, ax = plt.subplots(2,1)
+ax[0].plot(time_vect,trj)
+ax[1].plot(time_vect,motCmd)
+
 
 lgd = ['x','y']
 
 fig, ax = plt.subplots(2,1)
 for i in range(njt):
-    mc.out_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='out')
-    mc.out_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b')
+    #mc.out_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='out')
+    #mc.out_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b')
 
     b,c,pos_r = mc.out_p[i].computePSTH(time_vect,buffer_sz=25)
     b,c,neg_r = mc.out_n[i].computePSTH(time_vect,buffer_sz=25)
