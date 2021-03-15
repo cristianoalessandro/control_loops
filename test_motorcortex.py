@@ -22,6 +22,8 @@ flagSaveFig = False
 figPath = './fig/motorcortex/'
 pthDat = "./data/"
 
+preciseControl = True
+
 m      = 2.0
 ptMass = PointMass(mass=m)
 njt    = ptMass.numVariables()
@@ -83,7 +85,7 @@ mc_param = {
     "wgt_fbk_out": 1.0     # Connection weight from fbk to output neurons (must be positive)
     }
 
-mc = MotorCortex(N, time_vect, trj, ptMass, pthDat, False, **mc_param)
+mc = MotorCortex(N, time_vect, trj, ptMass, pthDat, preciseControl, **mc_param)
 
 
 # ####### Connections (error to motor cortex feedback)
