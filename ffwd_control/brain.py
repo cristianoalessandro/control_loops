@@ -20,20 +20,24 @@ from pointMass import PointMass
 nest.Install("util_neurons_module")
 res = nest.GetKernelStatus("resolution")
 
+nest.SetKernelStatus({"overwrite_files": True})
+
 # Randomize
-# msd = int( time.time() * 1000.0 )
-# N_vp = nest.GetKernelStatus(['total_num_virtual_procs'])[0]
-# nest.SetKernelStatus({'rng_seeds' : range(msd+N_vp+1, msd+2*N_vp+1)})
+msd = int( time.time() * 1000.0 )
+N_vp = nest.GetKernelStatus(['total_num_virtual_procs'])[0]
+nest.SetKernelStatus({'rng_seeds' : range(msd+N_vp+1, msd+2*N_vp+1)})
+
+preciseControl = True
 
 m      = 2.0
 ptMass = PointMass(mass=m)
 njt    = ptMass.numVariables()
 
-# Neuron neurons
-N = 5
+# Number of neurons (for each subpopulation positive/negative)
+N = 20
 
 time_span = 1000.0
-time_vect = np.linspace(0, time_span/1e3, num=int(np.round(time_span/res)), endpoint=True)
+time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
 
 pthDat = "./data/"
 
@@ -82,7 +86,7 @@ mc_param = {
     "wgt_fbk_out": 1.0     # Connection weight from fbk to output neurons (must be positive)
     }
 
-mc = MotorCortex(N, time_vect, trj, ptMass, pthDat, **mc_param)
+mc = MotorCortex(N, time_vect, trj, ptMass, pthDat, preciseControl, **mc_param)
 
 
 ######## Connections (error to motor cortex feedback)
@@ -114,27 +118,27 @@ nest.Simulate(time_span)
 ############# plot
 
 
-motCmd = mc.getMotorCommands()
-fig, ax = plt.subplots(2,1)
-ax[0].plot(time_vect,trj)
-ax[1].plot(time_vect,motCmd)
-
-
-lgd = ['x','y']
-
-fig, ax = plt.subplots(2,1)
-for i in range(njt):
-    #mc.out_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='out')
-    #mc.out_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b')
-
-    b,c,pos_r = mc.out_p[i].computePSTH(time_vect,buffer_sz=25)
-    b,c,neg_r = mc.out_n[i].computePSTH(time_vect,buffer_sz=25)
-    if i==0:
-        plt.figure()
-    plt.plot(b[:-1],pos_r-neg_r)
-    plt.xlabel("time (ms)")
-    plt.ylabel("spike rate positive - negative")
-    plt.legend(lgd)
-
-#plt.savefig("mctx_out_pos-neg.png")
-plt.show()
+# motCmd = mc.getMotorCommands()
+# fig, ax = plt.subplots(2,1)
+# ax[0].plot(time_vect,trj)
+# ax[1].plot(time_vect,motCmd)
+#
+#
+# lgd = ['x','y']
+#
+# fig, ax = plt.subplots(2,1)
+# for i in range(njt):
+#     mc.out_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='out')
+#     mc.out_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b')
+#
+#     b,c,pos_r = mc.out_p[i].computePSTH(time_vect,buffer_sz=25)
+#     b,c,neg_r = mc.out_n[i].computePSTH(time_vect,buffer_sz=25)
+#     if i==0:
+#         plt.figure()
+#     plt.plot(b[:-1],pos_r-neg_r)
+#     plt.xlabel("time (ms)")
+#     plt.ylabel("spike rate positive - negative")
+#     plt.legend(lgd)
+#
+# #plt.savefig("mctx_out_pos-neg.png")
+# plt.show()

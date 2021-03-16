@@ -6,24 +6,41 @@ import queue
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Just to get the following imports right!
+sys.path.insert(1, '../')
+from pointMass import PointMass
+import trajectories as tj
+
 import ctypes
 ctypes.CDLL("libmpi.so", mode=ctypes.RTLD_GLOBAL)
 
 pthDat = "./data/"
 
-N   = 5  # Number of postive/negative neurons (will eventually come from an external parameter)
-njt = 2  # Number of joints (will eventually come from plant object)
+# Plant object might come from external MPI message eventually
+pos_init = np.array([0,0])
+vel_init = np.array([0,0])
+
+m      = 2.0
+ptMass = PointMass(mass=m, IC_pos=pos_init, IC_vel=vel_init)
+njt    = ptMass.numVariables()
+
+N     = 20 # Number of postive/negative neurons (will eventually come from an external parameter)
+scale = 10 # Scaling coefficient to translate spike rates into forces
 
 bufSize = 100/1e3 # Buffer to calculate spike rate (seconds)
 
-IN_LATENCY = 0.001
-timestep   = 0.001 # seconds (should come from NEST simulation)
-stoptime   = 1.0   # seconds (should come from NEST simulation)
+IN_LATENCY = 0.0001
+timestep   = 0.0001 # seconds (should come from NEST simulation: 0.1 ms)
+stoptime   = 1.0    # seconds (should come from NEST simulation)
 
 w = 1 # Weight (motor cortex - motor neurons)
 
 time   = np.arange(0,stoptime+timestep,timestep)
 n_time = len(time)
+
+# Desired trajectories (this is only for testing; it should not be here)
+tgt_pos  = np.array([0.5,0.5])
+trj, pol = tj.minimumJerk(pos_init, tgt_pos, time)
 
 # Lists that will contain the positive and negative spikes
 # Each element of the list corrspond to a variable to be controlled.
@@ -38,6 +55,8 @@ for i in range(njt):
 # Arrays that will contain the spike rates at each time instant
 spkRate_pos = np.zeros([n_time,njt])
 spkRate_neg = np.zeros([n_time,njt])
+spkRate_net = np.zeros([n_time,njt])
+inputCmd    = np.zeros([n_time,njt])
 
 
 ############################## MUSIC CONFIG ##############################
@@ -64,8 +83,10 @@ def inhandler(t, indextype, channel_id):
     flagSign = tmp_id/N
     if flagSign<1: # Positive population
         spikes_pos[var_id].append([t, channel_id])
+        #f_pos[var_id].write("{0}\t{1:3.4f}\n".format(channel_id, t))
     else: # Negative population
         spikes_neg[var_id].append([t, channel_id])
+        #f_neg[var_id].write("{0}\t{1:3.4f}\n".format(channel_id, t))
     # Just to handle possible errors
     if flagSign<0 or flagSign>=2:
         raise Exception("Wrong neuron number during reading!")
@@ -96,6 +117,17 @@ for i in range(njt):
     fr_neg.append( open(tmp+"_n.txt", "a") )
 
 
+###########################################################################
+
+# Sequence of position and velocities
+pos = np.zeros([n_time,njt])
+vel = np.zeros([n_time,njt])
+
+# First element of position and velocity
+pos[0,:]= pos_init
+vel[0,:]= vel_init
+
+
 ######################## RUNTIME ##########################
 
 # Function to copute spike rates within within a buffer
@@ -112,22 +144,30 @@ def computeRate(spikes, w, nNeurons, timeSt, timeEnd):
 
 # Start the runtime phase
 runtime = music.Runtime(setup, timestep)
-step    = 1 # simulation step
+step    = 0 # simulation step
 
 tickt = runtime.time()
-while tickt < stoptime:
+while tickt <= stoptime:
 
-    runtime.tick()
-    tickt  = runtime.time()
+    # Position and velocity at the beginning of the timestep
+    pos[step,:] = ptMass.pos
+    vel[step,:] = ptMass.vel
+
+    # Compute input commands for this timestep
     buf_st = tickt-bufSize # Start of buffer
     buf_ed = tickt         # End of buffer
-    #print(buf_st,buf_ed)
-
     for i in range(njt):
         spkRate_pos[step,i], c = computeRate(spikes_pos[i], w, N, buf_st, buf_ed)
         spkRate_neg[step,i], c = computeRate(spikes_neg[i], w, N, buf_st, buf_ed)
+        spkRate_net[step,i]    = spkRate_pos[step,i] - spkRate_neg[step,i]
+        inputCmd[step,i]       = spkRate_net[step,i] / scale
+
+    # Integrate dynamical system
+    ptMass.integrateTimeStep(inputCmd[step,:], timestep)
 
     step = step+1
+    runtime.tick()
+    tickt = runtime.time()
 
 runtime.finalize()
 
@@ -135,14 +175,25 @@ runtime.finalize()
 #np.savetxt("rate_pos.csv",spkRate_pos,delimiter=',')
 #np.savetxt("rate_neg.csv",spkRate_neg,delimiter=',')
 
-plt.figure()
-plt.plot(spkRate_pos)
-plt.plot(spkRate_neg)
+for i in range(njt):
+    f_pos[i].close()
+    fr_pos[i].close()
+    f_neg[i].close()
+    fr_neg[i].close()
+
+# plt.figure()
+# plt.plot(spkRate_net)
+# plt.plot(inputCmd)
+# plt.xlabel("time (ms)")
+# plt.ylabel("spike rate positive - negative")
+# plt.legend(['x','y'])
+#plt.savefig("plant_in_pos-neg.png")
 
 plt.figure()
-plt.plot(spkRate_pos-spkRate_neg)
-plt.xlabel("time (ms)")
-plt.ylabel("spike rate positive - negative")
-plt.legend(['x','y'])
-#plt.savefig("plant_in_pos-neg.png")
+plt.plot(time,pos)
+plt.plot(time,trj,linestyle=':')
+plt.xlabel("time (s)")
+plt.ylabel("position (m)")
+plt.legend(['x','y','x des','y des'])
+
 plt.show()

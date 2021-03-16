@@ -8,4 +8,4 @@
   np=1
 
 # How ports are connected
-nest.music_out -> plant.music_in [20]
+nest.music_out -> plant.music_in [80]
