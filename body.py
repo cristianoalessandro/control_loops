@@ -50,3 +50,7 @@ class Body:
     # the given state variables
     def inverseDyn(self):
         raise Exception("Implement inverse dynamics in derived class")
+
+    # Returns the value of the Jacobian matrix
+    def jacobian(self, position):
+        raise Exception("Implement Jacobian in derived class")

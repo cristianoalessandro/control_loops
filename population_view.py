@@ -65,7 +65,6 @@ def plot_spikes(evs, ts, time_vect, pop=None, title='', ax=None):
 
     no_ax = ax is None
     if no_ax:
-        # ax = plt
         fig, ax = plt.subplots(1)
 
     ax.scatter(ts, evs, marker='.', s=1)
@@ -123,9 +122,6 @@ class PopView:
         self.trial_len = time_vect[ len(time_vect)-1 ]
 
     def connect(self, other, rule='one_to_one', w=1.0):
-        #print("pop source: " + str(self.pop))
-        #print("pop dest: " + str(other.pop))
-        #print("weight:" + str(w))
         nest.Connect(self.pop, other.pop, rule, syn_spec={'weight': w})
 
     def slice(self, start, end=None, step=None):
@@ -149,6 +145,7 @@ class PopView:
         plot_spikes(evs, ts, time, self.pop, title, ax)
 
     # Buffer size in ms
+    # NOTE: the time vector is in seconds, therefore buffer_sz needs to be converted
     def computePSTH(self, time, buffer_sz=10):
         t_init = time[0]
         t_end  = time[ len(time)-1 ]
@@ -169,7 +166,6 @@ class PopView:
 
         no_ax = ax is None
         if no_ax:
-            # ax = plt
             fig, ax = plt.subplots(1)
 
         if bar:
@@ -179,7 +175,7 @@ class PopView:
             ax.plot(bins[:-1],rate_sm,**kwargs)
         ax.set(xlim=(t_init, t_end))
         ax.set_ylabel(title)
-        
+
 
 
 

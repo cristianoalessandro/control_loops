@@ -17,20 +17,25 @@ figPath = './fig/planner/'
 pthDat = "./data/"
 
 pos_i  = np.array([0.0,0.0])
-tgt    = np.array([10.0,2.0]) # Desired target
-final  = np.array([10.0,2.0]) # Exemplary reached target (this will be the output of a simulation)
+tgt    = np.array([0.5,0.5]) # Desired target
+final  = np.array([0.5,0.5]) # Exemplary reached target (this will be the output of a simulation)
 kpl    = 0.5                  # Coefficient across-trial plan adjustement
 
-m      = 5.0
+m      = 2.0
 ptMass = PointMass(mass=m,IC_pos=pos_i)
 njt    = ptMass.numVariables()
 
-N   = 50   # Neuron neurons
+N = 50   # Neuron neurons
 
 time_span = 1000.0
 time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
 
-plan_pop = Planner(N, time_vect, plant=ptMass, target=tgt, kPlan=kpl, pathData=pthDat, kp=10.0)
+pl_param = {
+    "base_rate": 0.0,
+    "kp": 50.0
+    }
+
+plan_pop = Planner(N, time_vect, plant=ptMass, target=tgt, kPlan=kpl, pathData=pthDat, **pl_param)
 
 
 ######################## Check trajectories ########################
@@ -72,7 +77,7 @@ plt.figure()
 plt.plot( time_vect, plan_pop.getTrajPlan() )   # Planned trajectory
 plt.plot( time_vect, final_trj, linestyle=':' )   # Planned trajectory
 plt.plot( time_span, np.reshape(tgt,(1,2)), marker='o' )   # Planned trajectory
-plt.ylabel("Trajectory (cm)")
+plt.ylabel("Trajectory (m)")
 plt.xlabel("time (ms)")
 plt.legend(lgd)
 plt.grid()

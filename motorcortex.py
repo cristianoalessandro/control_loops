@@ -15,10 +15,14 @@ from population_view import PopView
 class MotorCortex:
 
     ############## Constructor (plant value is just for testing) ##############
-    def __init__(self, numNeurons, time_vect, traj_joint, plant, pathData="./data/", **kwargs):
+    def __init__(self, numNeurons, time_vect, traj_joint, plant, pathData="./data/", precise=False, **kwargs):
 
         # Path where to save the data file
         self.pathData = pathData
+
+        # If True, forward motor cortex generate precise motor commands
+        # through inverse dynamics
+        self.precise = precise
 
         ### Initialize analog signals
         self.init_analog(time_vect, traj_joint, plant)
@@ -74,24 +78,28 @@ class MotorCortex:
     # General function to generate motor commands given joint trajectory
     def generateMotorCommands(self, trajectory):
         self.setJointTrajectory(trajectory)
-        initPos = trajectory[0]                   # Initial position
-        desPos  = trajectory[ len(trajectory)-1 ]  # Desired target position
-        self.motorCommands = self.generateCoarseMotorCommnads(initPos, desPos, self.time_vect)
-        #self.motorCommands = generatePreciseMotorCommnads(trajectory)
+        initPos = trajectory[0,:]                    # Initial position
+        desPos  = trajectory[ len(trajectory)-1,: ]  # Desired target position
+        if self.precise:
+            self.motorCommands = self.generatePreciseMotorCommnads(trajectory)
+        else:
+            self.motorCommands = self.generateCoarseMotorCommnads(initPos, desPos, self.time_vect/1e3)
 
         # Save motor commands into files
         self.saveMotorCommands(self.motorCommands)
 
 
     # Precise motor commands using inverse dynamics
-    #TODO: Not implemented yet
-    def generatePreciseMotorCommnads(self, trj_joints):
-        pass
-        #mcmd = self.plant.inverseDyn( trj_joints )
-        #self.saveMotorCommands(mcmd)
+    def generatePreciseMotorCommnads(self, pos):
+        dt  = (self.time_vect[1]-self.time_vect[0])/1e3
+        vel = np.gradient(pos,dt,axis=0)
+        acc = np.gradient(vel,dt,axis=0)
+        mcmd = self.plant.inverseDyn( pos, vel, acc )
+        return mcmd
 
 
     # Coarse motor commands using initial and desired position of each joint
+    # (this assumes a reaching movement with acceleration and deceleration)
     def generateCoarseMotorCommnads(self, init_pos, des_pos, time_vector):
 
         if len(init_pos)!=self.numJoints | len(des_pos)!=self.numJoints:
@@ -107,11 +115,16 @@ class MotorCortex:
         ext_t, ext_val = tj.minJerk_ddt_minmax(init_pos, des_pos, time_vector)
 
         # Approximate with sin function
-        tmp_ext = np.reshape( ext_val[0,:], (1,self.numJoints) )      # First extreme
+        tmp_ext = np.reshape( ext_val[0,:], (1,self.numJoints) ) # First extreme (positive)
         tmp_sin = np.sin( (2*np.pi*time_vector/T_max) )
         tmp_sin = np.reshape( tmp_sin,(tmp_sin.size,1) )
-        mcmd    = tmp_ext * tmp_sin
-        mcmd    = 1e5 * mcmd
+
+        # Motor commands: Inverse dynamics given approximated acceleration
+        dt   = (self.time_vect[1]-self.time_vect[0])/1e3
+        pos,pol  = tj.minimumJerk(init_pos, des_pos, time_vector)
+        vel  = np.gradient(pos,dt,axis=0)
+        acc  = tmp_ext*tmp_sin
+        mcmd = self.plant.inverseDyn(pos, vel, acc)
 
         return mcmd
 
@@ -198,14 +211,14 @@ class MotorCortex:
             # and draw from Poisson (i.e. basic_neuron).
 
             # Positive population (joint i)
-            filename = "mc_out_p_"+str(i)
+            filename = self.pathData+"mc_out_p_"+str(i)
             tmp_pop_p = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_p, {"pos": True})
             self.out_p.append( PopView(tmp_pop_p,self.time_vect) )
             #self.out_p.append( PopView(tmp_pop_p,self.time_vect,to_file=True,label=filename) )
 
             # Negative population (joint i)
-            filename = "mc_out_n_"+str(i)
+            filename = self.pathData+"mc_out_n_"+str(i)
             tmp_pop_n = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_n, {"pos": False})
             self.out_n.append( PopView(tmp_pop_n,self.time_vect) )
