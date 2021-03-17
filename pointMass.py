@@ -64,7 +64,7 @@ class PointMass(Body):
 
     # In a point mass the inverse dynamics is the simple multiplication of the
     # acceleration of the point by its mass
-    def inverseDyn(self,pos,vel,acc):        
+    def inverseDyn(self,pos,vel,acc):
         # positions, velocities and accelerations are expected to be N-by-nV arrays,
         # where N is the number of timesteps and nV is the number of variables
         if acc.ndim>1:
@@ -74,6 +74,10 @@ class PointMass(Body):
             raise Exception("Wrong value format")
 
         return self._mass*acc
+
+    # In a point mass the Jacobian is the identity matrix (independent of position)
+    def jacobian(self,position):
+        return np.identity(self.numVariables())
 
 
 # TEST

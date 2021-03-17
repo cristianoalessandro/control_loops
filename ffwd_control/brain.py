@@ -16,10 +16,20 @@ from population_view import plotPopulation
 from util import savePattern
 from population_view import PopView
 from pointMass import PointMass
+from settings import Experiment, Simulation, Brain
 
 nest.Install("util_neurons_module")
-res = nest.GetKernelStatus("resolution")
 
+
+########### Simulation
+
+sim = Simulation()
+
+res       = sim.resolution
+time_span = sim.timeMax
+time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
+
+nest.SetKernelStatus({"resolution": res})
 nest.SetKernelStatus({"overwrite_files": True})
 
 # Randomize
@@ -27,72 +37,36 @@ msd = int( time.time() * 1000.0 )
 N_vp = nest.GetKernelStatus(['total_num_virtual_procs'])[0]
 nest.SetKernelStatus({'rng_seeds' : range(msd+N_vp+1, msd+2*N_vp+1)})
 
-preciseControl = True
 
-m      = 2.0
-ptMass = PointMass(mass=m)
-njt    = ptMass.numVariables()
+##################### Experiment
 
-# Number of neurons (for each subpopulation positive/negative)
-N = 20
+exp = Experiment()
 
-time_span = 1000.0
-time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
+dynSys   = exp.dynSys
+njt      = exp.dynSys.numVariables()
 
-pthDat = "./data/"
-
-init_pos = np.array([0.0,0.0])
-tgt_pos  = np.array([0.5,0.5])
+init_pos = exp.IC_pos
+tgt_pos  = exp.tgt_pos
 trj, pol = tj.minimumJerk(init_pos, tgt_pos, time_vect)
 
-#tgt_real = np.array([15.0,0.0])
-#trj_real, pol = tj.minimumJerk(init_pos, tgt_real, time_vect)
-trj_real = trj # NO ERROR
-
-# Error in joint trajectory
-trj_err = trj-trj_real
-savePattern(trj_err, pthDat+"error")
-
-
-####### Error population (goes into motor cortex feedback)
-err_param = {
-    "base_rate": 0.0, # Feedforward neurons
-    "kp": 1.0
-    }
-
-err_pop_p = []
-err_pop_n = []
-for i in range(njt):
-    # Positive population (joint i)
-    tmp_pop_p = nest.Create("tracking_neuron", n=N, params=err_param)
-    nest.SetStatus(tmp_pop_p, {"pos": True, "pattern_file": pthDat+"error"+"_"+str(i)+".dat"})
-    err_pop_p.append( PopView(tmp_pop_p,time_vect) )
-
-    # Negative population (joint i)
-    tmp_pop_n = nest.Create("tracking_neuron", n=N, params=err_param)
-    nest.SetStatus(tmp_pop_n, {"pos": False, "pattern_file": pthDat+"error"+"_"+str(i)+".dat"})
-    err_pop_n.append( PopView(tmp_pop_n,time_vect) )
+pthDat   = exp.pathData
 
 
 ####### Motor cortex
-mc_param = {
-    "ffwd_base_rate": 0.0, # Feedforward neurons
-    "ffwd_kp": 10.0,
-    "fbk_base_rate": 0.0,  # Feedback neurons
-    "fbk_kp": 10.0,
-    "out_base_rate": 0.0,  # Summation neurons
-    "out_kp":1.0,
-    "wgt_ffwd_out": 1.0,   # Connection weight from ffwd to output neurons (must be positive)
-    "wgt_fbk_out": 1.0     # Connection weight from fbk to output neurons (must be positive)
-    }
 
-mc = MotorCortex(N, time_vect, trj, ptMass, pthDat, preciseControl, **mc_param)
+brain = Brain()
 
+# Number of neurons (for each subpopulation positive/negative)
+N = brain.nNeurPop
 
-######## Connections (error to motor cortex feedback)
-for i in range(njt):
-    err_pop_p[i].connect(mc.fbk_p[i], rule='one_to_one', w= 1.0)
-    err_pop_n[i].connect(mc.fbk_n[i], rule='one_to_one', w=-1.0)
+# Precise or approximatesd motor control?
+preciseControl = brain.precCtrl
+
+# Motor cortex parameters
+mc_param = brain._motCtx_param
+
+# Create motor cortex
+mc = MotorCortex(N, time_vect, trj, dynSys, pthDat, preciseControl, **mc_param)
 
 
 ######## Create MUSIC output
@@ -103,11 +77,9 @@ ii=0
 for j in range(njt):
     for i, n in enumerate(mc.out_p[j].pop):
         nest.Connect([n], proxy_out, "one_to_one",{'music_channel': ii})
-        #print(ii,n)
         ii=ii+1
     for i, n in enumerate(mc.out_n[j].pop):
         nest.Connect([n], proxy_out, "one_to_one",{'music_channel': ii})
-        #print(ii,n)
         ii=ii+1
 
 
@@ -115,7 +87,8 @@ for j in range(njt):
 # Simulate
 nest.Simulate(time_span)
 
-############# plot
+
+############# PLOTTING
 
 
 # motCmd = mc.getMotorCommands()

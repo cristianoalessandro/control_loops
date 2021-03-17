@@ -43,20 +43,6 @@ def minimumJerk_ddt(x_init, x_des, timespan):
     return pp, pol
 
 
-def minimumJerk_dddt(x_init, x_des, timespan):
-    T_max = timespan[ len(timespan)-1 ]
-    tmspn = timespan.reshape(timespan.size,1)
-
-    a =  360*(x_des-x_init)/np.power(T_max,5)
-    b = -360*(x_des-x_init)/np.power(T_max,4)
-    c =  60*(x_des-x_init)/np.power(T_max,3)
-
-    pol = np.array([a,b,c])
-    pp  = a*np.power(tmspn,2) + b*np.power(tmspn,1) + c
-
-    return pp, pol
-
-
 # Get the extremes of the second derivative of a min-jerk trajectory
 def minJerk_ddt_minmax(x_init, x_des, timespan):
 
@@ -77,6 +63,20 @@ def minJerk_ddt_minmax(x_init, x_des, timespan):
             t[:,i]   = np.reshape( [t1,t2],(1,2) )
 
     return t, ext
+
+
+def minimumJerk_dddt(x_init, x_des, timespan):
+    T_max = timespan[ len(timespan)-1 ]
+    tmspn = timespan.reshape(timespan.size,1)
+
+    a =  360*(x_des-x_init)/np.power(T_max,5)
+    b = -360*(x_des-x_init)/np.power(T_max,4)
+    c =  60*(x_des-x_init)/np.power(T_max,3)
+
+    pol = np.array([a,b,c])
+    pp  = a*np.power(tmspn,2) + b*np.power(tmspn,1) + c
+
+    return pp, pol
 
 
 def polar2cartesian(radius, angle):
