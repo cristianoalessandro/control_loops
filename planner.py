@@ -89,7 +89,7 @@ class Planner:
 
     def updateTarget(self, error):
         self.error_plan  = error                                                         # Record error
-        self.target_plan = self.getTargetPlan()-self.kPlan*error                          # Update planned traget
+        self.target_plan = self.getTargetPlan()-self.kPlan*error                         # Update planned traget
         self.traj_plan   = self.generateEndEffTraj(self.init_endEff, self.target_plan)   # Update planned trajectory (end-effector space)
         self.traj_plan_j = self.generateJointTraj(self.traj_plan)                        # Update planned trajectory (joint space)
 

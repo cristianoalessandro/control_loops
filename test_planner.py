@@ -16,16 +16,17 @@ flagSaveFig = False
 figPath = './fig/planner/'
 pthDat = "./data/"
 
-pos_i  = np.array([0.0,0.0])
 tgt    = np.array([0.5,0.5]) # Desired target
-final  = np.array([0.5,0.5]) # Exemplary reached target (this will be the output of a simulation)
-kpl    = 0.5                  # Coefficient across-trial plan adjustement
+final  = np.array([0.2,0.8]) # Exemplary reached target (this will be the output of a simulation)
+kpl    = 0.5                 # Coefficient across-trial plan adjustement
 
+# Dynamical system
+pos_i  = np.array([0.0,0.0]) # Joint space
 m      = 2.0
 ptMass = PointMass(mass=m,IC_pos=pos_i)
 njt    = ptMass.numVariables()
 
-N = 50   # Neuron neurons
+N = 50   # Number neurons
 
 time_span = 1000.0
 time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
@@ -45,6 +46,7 @@ plan_pop = Planner(N, time_vect, plant=ptMass, target=tgt, kPlan=kpl, pathData=p
 final_trj, pol = tj.minimumJerk(pos_i, final, time_vect)
 err = final-plan_pop.getTargetDes()     # Error
 plan_pop.updateTarget(err)              # Compute new plan, given error
+
 
 # End effector space
 #plt.figure()
@@ -71,12 +73,12 @@ nest.Simulate(time_span)
 
 ########################### PLOTTING ###########################
 
-lgd = ['x plan','y plan','x real','y real','x tgt des','y tgt des']
+lgd = ['x tgt des','y tgt des','x predicted','y predicted','x plan','y plan']
 
 plt.figure()
-plt.plot( time_vect, plan_pop.getTrajPlan() )   # Planned trajectory
-plt.plot( time_vect, final_trj, linestyle=':' )   # Planned trajectory
-plt.plot( time_span, np.reshape(tgt,(1,2)), marker='o' )   # Planned trajectory
+plt.plot( time_span, np.reshape(tgt,(1,2)), marker='o' )   # Desired target
+plt.plot( time_vect, final_trj, linestyle=':' )            # Predicted trajectory
+plt.plot( time_vect, plan_pop.getTrajPlan() )              # Planned trajectory
 plt.ylabel("Trajectory (m)")
 plt.xlabel("time (ms)")
 plt.legend(lgd)
