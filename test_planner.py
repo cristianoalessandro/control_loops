@@ -18,7 +18,7 @@ pthDat = "./data/"
 
 tgt    = np.array([0.5,0.5]) # Desired target
 final  = np.array([0.2,0.8]) # Exemplary reached target (this will be the output of a simulation)
-kpl    = 0.5                 # Coefficient across-trial plan adjustement
+kpl    = 0.0                 # Coefficient across-trial plan adjustement
 
 # Dynamical system
 pos_i  = np.array([0.0,0.0]) # Joint space

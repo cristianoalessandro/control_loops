@@ -69,7 +69,7 @@ mc_param = brain._motCtx_param
 mc = MotorCortex(N, time_vect, trj, dynSys, pthDat, preciseControl, **mc_param)
 
 
-######## Create MUSIC output
+######## Create MUSIC output (to send motor commands)
 
 proxy_out = nest.Create('music_event_out_proxy', 1, params = {'port_name':'music_out'})
 
