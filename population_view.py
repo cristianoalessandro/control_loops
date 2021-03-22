@@ -177,54 +177,6 @@ class PopView:
         ax.set_ylabel(title)
 
 
-############################ POPULATION VIEW #############################
-class PopViewSpine:
-    def __init__(self, pop, time_vect, label=''):
-
-        # Population of SensoryNeuron objects (should be a list)
-        self._pop = pop
-
-        # Time vector
-        self.time_vect = time_vect
-        self.trial_len = time_vect[ len(time_vect)-1 ]
-
-    @property
-    def pop(self):
-        return self._pop
-
-    @pop.setter
-    def pop(self, value):
-        self._pop = value
-
-    # Get neuron IDs of the population
-    def getPopIds(self):
-        ids = []
-        n = len(self.pop)
-        for i in range(n):
-            ids.append(self.pop[i].id)
-        return np.array(ids)
-
-    def sortFirst(val):
-        return val[0]
-
-    def get_events(self):
-        spk = []
-        n = len(self.pop)
-        # Concatenate list of spikes of all neurons
-        for i in range(n):
-            spk=spk+self.pop.spike
-        # Sort list of spikes based on time of event
-        spk.sort(key=sortFirst)
-        # Extract times and neuron ids of events
-        ts  = np.array(spk)[:,0]
-        evs = np.array(spk)[:,1]
-        return evs, ts
-
-    def plot_spikes(self, time, title='', ax=None):
-        evs, ts = self.get_events()
-        plot_spikes(evs, ts, time, self.getPopIds(), title, ax)
-
-
 ########## ACROSS TRIALS STUFF ##########
 
     # NOTE: only for constant signals

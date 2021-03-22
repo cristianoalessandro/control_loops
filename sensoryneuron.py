@@ -11,16 +11,30 @@ import music
 
 class SensoryNeuron:
 
-    def __init__(self, id, bas_rate=0.0, kp=1.0):
+    def __init__(self, numNeurons, idStart=0, bas_rate=0.0, kp=1.0):
 
+        self._numNeurons = numNeurons
         self._baseline_rate = bas_rate
         self._gain = kp
         self._rate = 0.0
-        self._id = id
         self._spike = []
+
+        # Set IDs starting from idStart
+        id_vect = np.zeros(shape=numNeurons)
+        for i in range(numNeurons):
+            id_vect[i]=i+idStart
+        self._id=id_vect
 
         # Output port over which sending spikes
         self._outPort = []
+
+    @property
+    def numNeurons(self):
+        return self._numNeurons
+
+    @numNeurons.setter
+    def baseline_rate(self, value):
+        self._numNeurons = value
 
     @property
     def id(self):
@@ -28,7 +42,7 @@ class SensoryNeuron:
 
     @id.setter
     def baseline_rate(self, value):
-        self._id = id
+        self._id = value
 
     @property
     def baseline_rate(self):
@@ -69,20 +83,47 @@ class SensoryNeuron:
     # Update theoretical spike rate based on input signal, and generate spikes
     def update(self, signal, resolution, simStep):
 
+        # Tehoretical rate
         self.rate = self.baseline_rate + self.gain * signal
 
-        # Transform rate into lambda coefficient (Poisson)
+        # Transform theoretical rate into lambda coefficient (Poisson)
         lmd = self.rate*resolution    # Lamda of Poisson distribution
-        p   = 1-np.exp(-lmd)          # Probability of at least one spike
-        rd  = np.random.uniform(low=0.0,high=1.0,size=1) # Draw uniformly
+        rng = np.random.default_rng()
+        nEv = rng.poisson(lam=lmd, size=(self.numNeurons))
 
-        #print(p,rd)
+        for i in range(self.numNeurons):
+            if (nEv[i])>0:
+                spk_time=simStep*resolution
+                self.spike.append([spk_time, self.id[i]])
+                if self.outPort:
+                    self.outPort.insertEvent(spk_time, self.id[i], music.Index.GLOBAL)
+                else:
+                    #print("Sensory neuron "+str(self.id)+" not connected!")
+                    pass
 
-        # Send a spike if the probability of drawing at least one
-        # Poisson event (p) is higher than chance (rd)
-        if (rd<=p):
-            self.spike.append([simStep, self.id])
-            if self.outPort:
-                self.outPort.insertEvent(simStep, self.id, music.Index.GLOBAL)
-            else:
-                print("Sensory neuron "+str(self.id)+" not connected!")
+        # nEv = nEv[0]
+        #
+        # # Send a spike if at least one event is drawn
+        # if (nEv>=1):
+        #     spk_time=simStep*resolution
+        #     self.spike.append([spk_time, self.id])
+        #     if self.outPort:
+        #         self.outPort.insertEvent(spk_time, self.id, music.Index.GLOBAL)
+        #     else:
+        #         #print("Sensory neuron "+str(self.id)+" not connected!")
+        #         pass
+
+    def get_events(self):
+        spk = self.spike
+        # Sort list of spikes based on time of event
+        spk.sort(key=sortFirst)
+        # Extract times and neuron ids of events
+        ts  = np.array(spk)[:,0]
+        evs = np.array(spk)[:,1]
+        return evs, ts
+
+
+#################### Class ends here ####################
+
+def sortFirst(val):
+    return val[0]

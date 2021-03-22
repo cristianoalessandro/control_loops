@@ -15,17 +15,19 @@ time_n    = len(time_vect)
 
 # Poitions expressed in meters (mks system)
 init_pos  = np.array([0.0])
-final_pos = np.array([2.0])
+final_pos = np.array([5.0])
 trj, pol  = tj.minimumJerk(init_pos, final_pos, time_vect)
 
-id = 0
-sn = SensoryNeuron(id, bas_rate=0.0, kp=1.0)
+N=50
+idSt = 0
+sn = SensoryNeuron(N, idStart=idSt, bas_rate=0.0, kp=10.0)
 
 for i in range(time_n):
     sn.update(trj[i], res, i)
 
-print(np.array(sn.spike))
+evs, ts = sn.get_events()
 
-# plt.figure()
-# plt.plot(time_vect,trj)
-# plt.show()
+fig, ax = plt.subplots(2,1,sharex=True)
+ax[1].scatter(ts,evs,color='r',marker='.', s=1)
+ax[0].plot(time_vect,trj)
+plt.show()

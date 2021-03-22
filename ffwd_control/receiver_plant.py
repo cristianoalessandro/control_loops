@@ -104,8 +104,7 @@ def inhandler(t, indextype, channel_id):
 indata.map(inhandler,
         music.Index.GLOBAL,
         base=firstId,
-        size=nlocal,
-        accLatency=in_latency)
+        size=nlocal)
 
 
 ######################## SETUP FILES ##########################
