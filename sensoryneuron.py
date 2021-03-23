@@ -114,17 +114,6 @@ class SensoryNeuron:
                     #print("Sensory neuron "+str(self.pop)+" not connected!")
                     pass
 
-        # nEv = nEv[0]
-        #
-        # # Send a spike if at least one event is drawn
-        # if (nEv>=1):
-        #     spk_time=simStep*resolution
-        #     self.spike.append([spk_time, self.pop])
-        #     if self.outPort:
-        #         self.outPort.insertEvent(spk_time, self.pop, music.Index.GLOBAL)
-        #     else:
-        #         #print("Sensory neuron "+str(self.pop)+" not connected!")
-        #         pass
 
     def get_events(self):
         spk = self.spike
@@ -137,8 +126,6 @@ class SensoryNeuron:
         else:
             ts  = np.nan
             evs = np.nan
-            #ts  = np.array([])
-            #evs = np.array([])
         return evs, ts
 
 
@@ -152,7 +139,6 @@ class SensoryNeuron:
         count, bins = np.histogram( ts, bins=np.arange(t_init,t_end+1,buffer_sz) )
         rate = count/(N*buffer_sz)
         return bins, count, rate
-
 
 
     def plot_rate(self, time, buffer_sz=0.01, title='', ax=None, bar=True, **kwargs):

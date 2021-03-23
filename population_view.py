@@ -73,8 +73,6 @@ def plot_spikes(evs, ts, time_vect, pop=None, title='', ax=None):
     if pop:
         ax.set_ylim([min(pop), max(pop)])
 
-    #if no_ax:
-        #plt.show()
 
 # NOTE: This depends on the protocol (it uses variables like n_trials...)
 # NOTE: this assumes a constant rate across the trial
@@ -177,7 +175,7 @@ class PopView:
         ax.set_ylabel(title)
 
 
-########## ACROSS TRIALS STUFF ##########
+    ########## ACROSS TRIALS STUFF ##########
 
     # NOTE: only for constant signals
     def get_rate(self, n_trials=1):
