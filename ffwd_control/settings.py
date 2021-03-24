@@ -26,20 +26,20 @@ class Experiment:
         # Where to save data
         self._pathData = "./data/"
 
-        # Initial conditions
-        self._IC_pos = np.array([0.0,0.0])
-        self._IC_vel = np.array([0.0,0.0])
-
-        # Target position
+        # Initial and target position (end-effector space)
+        self._init_pos = np.array([0.0,0.0])
         self._tgt_pos  = np.array([0.0,0.5])
 
         # Perturbation
-        self._frcFld_angle = 0
+        self._frcFld_angle = 90
         self._frcFld_k     = 1
 
         # Dynamical system to be controlled (mass and dyn sys object)
-        self._m      = 2.0
-        self._dynSys = PointMass(mass=self._m, IC_pos=self._IC_pos, IC_vel=self._IC_vel)
+        self._m          = 2.0
+        self._dynSys     = PointMass(mass=self._m)
+        self._dynSys.pos = self._dynSys.inverseKin(self._init_pos) # Initial condition (position)
+        self._dynSys.vel = np.array([0.0,0.0])                     # Initial condition (velocity)
+
 
     @property
     def pathData(self):
@@ -50,12 +50,8 @@ class Experiment:
         return self._dynSys
 
     @property
-    def IC_pos(self):
-        return self._IC_pos
-
-    @property
-    def IC_vel(self):
-        return self._IC_vel
+    def init_pos(self):
+        return self._init_pos
 
     @property
     def tgt_pos(self):

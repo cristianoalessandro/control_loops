@@ -24,26 +24,32 @@ flagSaveFig = False
 figPath = './fig/motorcortex/'
 pthDat = "./data/"
 
+# Positions in end-effector space (meters)
+init_pos = np.array([0.0,0.0]) # Initial position
+tgt_pos  = np.array([0.5,0.5]) # Desired target
+tgt_real = np.array([0.5,0.2]) # Final position reached
+
 preciseControl = True
 
-m      = 2.0
-ptMass = PointMass(mass=m)
-njt    = ptMass.numVariables()
+# Dynamical system
+m          = 2.0
+ptMass     = PointMass(mass=m)
+ptMass.pos = ptMass.inverseKin(init_pos) # Place dyn sys in desired initial position
+ptMass.vel = np.array([0.0,0.0])         # with zero initial velocity
+njt        = ptMass.numVariables()
 
 # Neuron neurons
-N = 20
+N = 50
 
 # Time span and time vector expressed in ms (as all the rest in NEST)
 time_span = 1000.0
 time_vect = np.linspace(0, time_span, num=int(np.round(time_span/res)), endpoint=True)
 
-# Poitions expressed in meters (mks system)
-init_pos = np.array([0.0,0.0])
-tgt_pos  = np.array([0.5,0.5])
-tgt_real = np.array([0.5,0.5])
-
-trj, pol = tj.minimumJerk(init_pos, tgt_pos, time_vect)
-trj_real, pol = tj.minimumJerk(init_pos, tgt_real, time_vect)
+# Desired and real trajectories
+trj_ee, pol      = tj.minimumJerk(init_pos, tgt_pos, time_vect)  # end-eff space
+trj_ee_real, pol = tj.minimumJerk(init_pos, tgt_real, time_vect) # end-eff space
+trj              = ptMass.inverseKin( trj_ee )                   # joint space
+trj_real         = ptMass.inverseKin( trj_ee_real )              # joint space
 
 # If one wants to zero the error
 #trj_real = trj
@@ -57,8 +63,8 @@ savePattern(trj_err, pthDat+"error")
 
 ####### Error population (goes into motor cortex feedback)
 err_param = {
-    "base_rate": 0.0, # Feedforward neurons
-    "kp": 1.0
+    "base_rate": 0.0,
+    "kp": 10.0
     }
 
 err_pop_p = []
@@ -84,7 +90,8 @@ mc_param = {
     "out_base_rate": 0.0,  # Summation neurons
     "out_kp":1.0,
     "wgt_ffwd_out": 1.0,   # Connection weight from ffwd to output neurons (must be positive)
-    "wgt_fbk_out": 1.0     # Connection weight from fbk to output neurons (must be positive)
+    "wgt_fbk_out": 1.0,    # Connection weight from fbk to output neurons (must be positive)
+    "buf_sz": 50.0         # Size of the buffer to compute spike rate in ffwd and out populations
     }
 
 mc = MotorCortex(N, time_vect, trj, ptMass, pthDat, preciseControl, **mc_param)

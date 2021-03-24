@@ -27,7 +27,7 @@ time    = np.arange(0,timeMax+res,res)  # Time vector
 n_time  = len(time)
 
 scale   = 10     # Scaling coefficient to translate spike rates into forces
-bufSize = 100/1e3 # Buffer to calculate spike rate (seconds)
+bufSize = 10/1e3 # Buffer to calculate spike rate (seconds)
 
 
 ##################### EXPERIMENT #####################
@@ -40,17 +40,32 @@ pthDat = exp.pathData
 angle = exp.frcFld_angle
 k     = exp.frcFld_k
 
-pos_init = exp.IC_pos
-vel_init = exp.IC_vel
-
+# Dynamical system
 dynSys = exp.dynSys
 njt    = exp.dynSys.numVariables()
 
 # Desired trajectories (only used for testing)
-tgt_pos   = exp.tgt_pos
-trj,  pol = tj.minimumJerk(pos_init, tgt_pos, time)
-aDes, pol = tj.minimumJerk_ddt(pos_init, tgt_pos, time)
-inputDes  = exp.dynSys.inverseDyn([],[],aDes)
+# pos_init  = exp.IC_pos
+# tgt_pos   = exp.tgt_pos
+# trj,  pol = tj.minimumJerk(pos_init, tgt_pos, time)
+#
+# aDes, pol = tj.minimumJerk_ddt(pos_init, tgt_pos, time)
+# inputDes  = exp.dynSys.inverseDyn([],[],aDes)
+
+
+# Desired trajectories (only used for testing)
+# End-effector space
+init_pos_ee = exp.init_pos
+tgt_pos_ee  = exp.tgt_pos
+trj_ee, pol = tj.minimumJerk(init_pos_ee, tgt_pos_ee, time)
+
+# Joint space
+init_pos = dynSys.inverseKin( init_pos_ee )
+tgt_pos  = dynSys.inverseKin( tgt_pos_ee )
+trj      = dynSys.inverseKin( trj_ee )
+trj_d    = np.gradient(trj,res,axis=0)
+trj_dd   = np.gradient(trj_d,res,axis=0)
+inputDes = exp.dynSys.inverseDyn(trj,trj_d,trj_dd)
 
 
 ############################ BRAIN ############################
@@ -65,10 +80,6 @@ w = brain.spine_param["wgt_motCtx_motNeur"]
 
 
 ############################## MUSIC CONFIG ##############################
-
-msc = MusicCfg()
-
-in_latency = msc.input_latency
 
 firstId = 0        # First neuron taken care of by this MPI rank
 nlocal  = N*2*njt  # Number of neurons taken care of by this MPI rank
@@ -143,12 +154,14 @@ spkRate_neg  = np.zeros([n_time,njt])
 spkRate_net  = np.zeros([n_time,njt])
 
 # Sequence of position and velocities
-pos = np.zeros([n_time,njt])
-vel = np.zeros([n_time,njt])
+pos   = np.zeros([n_time,2])
+vel   = np.zeros([n_time,2])
+pos_j = np.zeros([n_time,njt])
+vel_j = np.zeros([n_time,njt])
 
 # Sequence of motor commands, perturbation and total input
 inputCmd     = np.zeros([n_time,njt]) # Input commands (from motor commands)
-perturb      = np.zeros([n_time,njt]) # Perturbation (end-effector)
+perturb      = np.zeros([n_time,2])   # Perturbation (end-effector)
 perturb_j    = np.zeros([n_time,njt]) # Perturbation (joint)
 inputCmd_tot = np.zeros([n_time,njt]) # Total input to dynamical system
 
@@ -174,7 +187,9 @@ step    = 0 # simulation step
 tickt = runtime.time()
 while tickt <= timeMax:
 
-    # Position and velocity at the beginning of the timestep
+    # TODO: check end-effector vs joint space
+
+    # Position and velocity (joint space) at the beginning of the timestep
     pos[step,:] = dynSys.pos
     vel[step,:] = dynSys.vel
 
@@ -231,7 +246,7 @@ plt.legend(['x','y','x_des','y_des'])
 
 plt.figure()
 plt.plot(pos[:,0],pos[:,1],color='k')
-plt.plot(pos_init[0],pos_init[1],marker='o',color='blue')
+plt.plot(init_pos[0],init_pos[1],marker='o',color='blue')
 plt.plot(tgt_pos[0],tgt_pos[1],marker='o',color='red')
 plt.plot(pos[n_time-1,0],pos[n_time-1,1],marker='x',color='k')
 plt.xlabel('position x (m)')

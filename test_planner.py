@@ -16,15 +16,18 @@ flagSaveFig = False
 figPath = './fig/planner/'
 pthDat = "./data/"
 
+# End effector space
+pos_i  = np.array([0.0,0.0]) # Initial position
 tgt    = np.array([0.5,0.5]) # Desired target
 final  = np.array([0.2,0.8]) # Exemplary reached target (this will be the output of a simulation)
-kpl    = 0.0                 # Coefficient across-trial plan adjustement
+kpl    = 1.0                 # Coefficient across-trial plan adjustement
 
 # Dynamical system
-pos_i  = np.array([0.0,0.0]) # Joint space
-m      = 2.0
-ptMass = PointMass(mass=m,IC_pos=pos_i)
-njt    = ptMass.numVariables()
+m          = 2.0
+ptMass     = PointMass(mass=m)
+ptMass.pos = ptMass.inverseKin(pos_i) # Place dyn sys in desired initial position
+ptMass.vel = np.array([0.0,0.0])      # with zero initial velocity
+njt        = ptMass.numVariables()
 
 N = 50   # Number neurons
 
@@ -43,6 +46,7 @@ plan_pop = Planner(N, time_vect, plant=ptMass, target=tgt, kPlan=kpl, pathData=p
 
 #plan_pop.setTargetPlan(np.array([10.0,0.5]))
 
+# End-effector space
 final_trj, pol = tj.minimumJerk(pos_i, final, time_vect)
 err = final-plan_pop.getTargetDes()     # Error
 plan_pop.updateTarget(err)              # Compute new plan, given error
