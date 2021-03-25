@@ -214,18 +214,18 @@ class MotorCortex:
             # and draw from Poisson (i.e. basic_neuron).
 
             # Positive population (joint i)
-            #filename = self.pathData+"mc_out_p_"+str(i)
+            filename = self.pathData+"mc_out_p_"+str(i)
             tmp_pop_p = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_p, {"pos": True, "buffer_size": buf_sz})
-            self.out_p.append( PopView(tmp_pop_p,self.time_vect) )
-            #self.out_p.append( PopView(tmp_pop_p,self.time_vect,to_file=True,label=filename) )
+            #self.out_p.append( PopView(tmp_pop_p,self.time_vect) )
+            self.out_p.append( PopView(tmp_pop_p,self.time_vect,to_file=True,label=filename) )
 
             # Negative population (joint i)
-            #filename = self.pathData+"mc_out_n_"+str(i)
+            filename = self.pathData+"mc_out_n_"+str(i)
             tmp_pop_n = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_n, {"pos": False, "buffer_size": buf_sz})
-            self.out_n.append( PopView(tmp_pop_n,self.time_vect) )
-            #self.out_n.append( PopView(tmp_pop_n,self.time_vect,to_file=True,label=filename) )
+            #self.out_n.append( PopView(tmp_pop_n,self.time_vect) )
+            self.out_n.append( PopView(tmp_pop_n,self.time_vect,to_file=True,label=filename) )
 
             ###### CONNECT FFWD AND FBK POULATIONS TO OUT POPULATION ######
             # Populations of each joint are connected together according to connection

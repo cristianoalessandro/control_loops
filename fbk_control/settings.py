@@ -26,20 +26,20 @@ class Experiment:
         # Where to save data
         self._pathData = "./data/"
 
-        # Initial conditions
-        self._IC_pos = np.array([0.0,0.0])
-        self._IC_vel = np.array([0.0,0.0])
-
-        # Target position
+        # Initial and target position (end-effector space)
+        self._init_pos = np.array([0.0,0.0])
         self._tgt_pos  = np.array([0.0,0.5])
 
         # Perturbation
-        self._frcFld_angle = 0
+        self._frcFld_angle = 90
         self._frcFld_k     = 1
 
         # Dynamical system to be controlled (mass and dyn sys object)
-        self._m      = 2.0
-        self._dynSys = PointMass(mass=self._m, IC_pos=self._IC_pos, IC_vel=self._IC_vel)
+        self._m          = 2.0
+        self._dynSys     = PointMass(mass=self._m)
+        self._dynSys.pos = self._dynSys.inverseKin(self._init_pos) # Initial condition (position)
+        self._dynSys.vel = np.array([0.0,0.0])                     # Initial condition (velocity)
+
 
     @property
     def pathData(self):
@@ -50,12 +50,8 @@ class Experiment:
         return self._dynSys
 
     @property
-    def IC_pos(self):
-        return self._IC_pos
-
-    @property
-    def IC_vel(self):
-        return self._IC_vel
+    def init_pos(self):
+        return self._init_pos
 
     @property
     def tgt_pos(self):
@@ -123,8 +119,14 @@ class Brain():
 
     def initSpine(self):
 
+        self._firstIdSensNeurons = 0
+
         self._spine_param = {
-            "wgt_motCtx_motNeur" : 1.0
+            "wgt_motCtx_motNeur" : 1.0, # Weight motor cortex - motor neurons
+            "wgt_sensNeur_spine" : 1.0, # Weight sensory neurons - spine
+            "fbk_delay":          10.0, # It cannot be less than resolution (ms)
+            "sensNeur_base_rate":  0.0, # Sensory neurons baseline rate
+            "sensNeur_kp":        50.0  # Sensory neurons gain
             }
 
     @property
@@ -140,6 +142,10 @@ class Brain():
         return self._precCtrl
 
     @property
+    def firstIdSensNeurons(self):
+        return self._firstIdSensNeurons
+
+    @property
     def spine_param(self):
         return self._spine_param
 
@@ -149,8 +155,14 @@ class MusicCfg():
 
     def __init__(self):
 
+        self._const = 1e-6 # Constant to subtract to avoid rounding errors (ms)
+
         self._input_latency = 0.0001 # seconds
 
     @property
     def input_latency(self):
         return self._input_latency
+
+    @property
+    def const(self):
+        return self._const

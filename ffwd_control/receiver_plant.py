@@ -118,24 +118,6 @@ indata.map(inhandler,
         size=nlocal)
 
 
-######################## SETUP FILES ##########################
-
-# Files that will contain received spikes
-f_pos  = [] # Positive (spikes)
-fr_pos = [] #          (rates)
-f_neg  = [] # Negative
-fr_neg = []
-for i in range(njt):
-    # Spikes
-    tmp = pthDat+"received_dynSys_j"+str(i)
-    f_pos.append( open(tmp+"_p.txt", "a") )
-    f_neg.append( open(tmp+"_n.txt", "a") )
-    # Spike rates
-    tmp = pthDat+"motNeur_rate_j"+str(i)
-    fr_pos.append( open(tmp+"_p.txt", "a") )
-    fr_neg.append( open(tmp+"_n.txt", "a") )
-
-
 ######################## SETUP ARRAYS ################################
 
 # Lists that will contain the positive and negative spikes
@@ -154,9 +136,9 @@ spkRate_neg  = np.zeros([n_time,njt])
 spkRate_net  = np.zeros([n_time,njt])
 
 # Sequence of position and velocities
-pos   = np.zeros([n_time,2])
+pos   = np.zeros([n_time,2])   # End-effector space
 vel   = np.zeros([n_time,2])
-pos_j = np.zeros([n_time,njt])
+pos_j = np.zeros([n_time,njt]) # Joint space
 vel_j = np.zeros([n_time,njt])
 
 # Sequence of motor commands, perturbation and total input
@@ -187,11 +169,11 @@ step    = 0 # simulation step
 tickt = runtime.time()
 while tickt <= timeMax:
 
-    # TODO: check end-effector vs joint space
-
-    # Position and velocity (joint space) at the beginning of the timestep
-    pos[step,:] = dynSys.pos
-    vel[step,:] = dynSys.vel
+    # Position and velocity at the beginning of the timestep
+    pos_j[step,:] = dynSys.pos                      # Joint space
+    vel_j[step,:] = dynSys.vel
+    pos[step,:]   = dynSys.forwardKin( dynSys.pos ) # End-effector space
+    vel[step,:]   = dynSys.forwardKin( dynSys.vel )
 
     # Compute input commands for this timestep
     buf_st = tickt-bufSize # Start of buffer
@@ -202,9 +184,9 @@ while tickt <= timeMax:
         spkRate_net[step,i]    = spkRate_pos[step,i] - spkRate_neg[step,i]
         inputCmd[step,i]       = spkRate_net[step,i] / scale
 
-    perturb[step,:]      = pt.curledForceField(vel[step,:], angle, k)                   # End-effector forces
-    perturb_j[step,:]    = np.matmul( dynSys.jacobian(pos[step,:]) , perturb[step,:] )  # Torques
-    inputCmd_tot[step,:] = inputCmd[step,:] + perturb_j[step,:]                         # Total torques
+    perturb[step,:]      = pt.curledForceField(vel[step,:], angle, k)                     # End-effector forces
+    perturb_j[step,:]    = np.matmul( dynSys.jacobian(pos_j[step,:]) , perturb[step,:] )  # Torques
+    inputCmd_tot[step,:] = inputCmd[step,:] + perturb_j[step,:]                           # Total torques
 
     # Integrate dynamical system
     dynSys.integrateTimeStep(inputCmd_tot[step,:], res)
@@ -215,15 +197,38 @@ while tickt <= timeMax:
 
 runtime.finalize()
 
-# To save into disk
-#np.savetxt("rate_pos.csv",spkRate_pos,delimiter=',')
-#np.savetxt("rate_neg.csv",spkRate_neg,delimiter=',')
 
+########################### SAVING INTO DISK ###########################
+
+def firstElement(elem):
+    return elem[0]
+
+# Spikes (of each neuron within the population for each joint)
 for i in range(njt):
-    f_pos[i].close()
-    fr_pos[i].close()
-    f_neg[i].close()
-    fr_neg[i].close()
+
+    # Positive
+    tmp_fnm_p = pthDat+"motNeur_inSpikes_j"+str(i)+"_p.txt"
+    if len(spikes_pos[i])>0:
+        spikes_pos[i].sort(key=firstElement)
+        tmp_dat_p = np.array( spikes_pos[i] )
+        np.savetxt(tmp_fnm_p, tmp_dat_p, fmt='%3.4f\t%d', delimiter='\t')
+    else:
+        tmp_dat_p = np.array( spikes_pos[i] )
+        np.savetxt(tmp_fnm_p, tmp_dat_p)
+
+    # Negative
+    tmp_fnm_n = pthDat+"motNeur_inSpikes_j"+str(i)+"_n.txt"
+    if len(spikes_neg[i])>0:
+        spikes_neg[i].sort(key=firstElement)
+        tmp_dat_n = np.array( spikes_neg[i] )
+        np.savetxt(tmp_fnm_n, tmp_dat_n, fmt='%3.4f\t%d', delimiter='\t' )
+    else:
+        tmp_dat_n = np.array( spikes_neg[i] )
+        np.savetxt(tmp_fnm_n, tmp_dat_n)
+
+# Spike rates (of each population for each joint)
+np.savetxt(pthDat+"motNeur_rate_pos.csv",spkRate_pos, delimiter=',')
+np.savetxt(pthDat+"motNeur_rate_neg.csv",spkRate_neg, delimiter=',')
 
 
 ########################### PLOTTING ###########################
@@ -237,38 +242,22 @@ plt.ylabel("spike rate positive - negative")
 plt.legend(['x','y'])
 #plt.savefig("plant_in_pos-neg.png")
 
+# Joint space
 plt.figure()
-plt.plot(time,pos)
+plt.plot(time,pos_j)
 plt.plot(time,trj,linestyle=':')
 plt.xlabel('time (s)')
 plt.ylabel('position (m)')
 plt.legend(['x','y','x_des','y_des'])
 
+# End-effector space
 plt.figure()
 plt.plot(pos[:,0],pos[:,1],color='k')
-plt.plot(init_pos[0],init_pos[1],marker='o',color='blue')
-plt.plot(tgt_pos[0],tgt_pos[1],marker='o',color='red')
+plt.plot(init_pos_ee[0],init_pos_ee[1],marker='o',color='blue')
+plt.plot(tgt_pos_ee[0],tgt_pos_ee[1],marker='o',color='red')
 plt.plot(pos[n_time-1,0],pos[n_time-1,1],marker='x',color='k')
 plt.xlabel('position x (m)')
 plt.ylabel('position y (m)')
 plt.legend(['trajectory', 'init','target','final'])
-
-# step_n = 5
-# step   = int(pos.shape[0]/step_n)
-# for i in range(step_n):
-#     idx = i*step
-#     plt.arrow(pos[idx,0],pos[idx,1], vel[idx,0],vel[idx,1])
-#     #plt.arrow(pos[idx,0],pos[idx,1], inputCmd[idx,0],inputCmd[idx,1])
-#     plt.arrow(pos[idx,0],pos[idx,1], perturb[idx,0],perturb[idx,1],color='red')
-
-# fig, ax = plt.subplots(2,1)
-# ax[0].plot(time,inputCmd[:,0])
-# ax[0].plot(time,perturb[:,0])
-# ax[0].plot(time,inputCmd_tot[:,0])
-# ax[0].set_ylabel("x")
-# ax[1].plot(time,inputCmd[:,1])
-# ax[1].plot(time,perturb[:,1])
-# ax[1].plot(time,inputCmd_tot[:,1])
-# ax[1].set_ylabel("y")
 
 plt.show()

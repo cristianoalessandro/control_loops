@@ -16,7 +16,7 @@ from population_view import plotPopulation
 from util import savePattern
 from population_view import PopView
 from pointMass import PointMass
-from settings import Experiment, Simulation, Brain
+from settings import Experiment, Simulation, Brain, MusicCfg
 
 nest.Install("util_neurons_module")
 
@@ -45,9 +45,15 @@ exp = Experiment()
 dynSys   = exp.dynSys
 njt      = exp.dynSys.numVariables()
 
-init_pos = exp.IC_pos
-tgt_pos  = exp.tgt_pos
-trj, pol = tj.minimumJerk(init_pos, tgt_pos, time_vect)
+# End-effector space
+init_pos_ee = exp.init_pos
+tgt_pos_ee  = exp.tgt_pos
+trj_ee, pol = tj.minimumJerk(init_pos_ee, tgt_pos_ee, time_vect)
+
+# Joint space
+init_pos = dynSys.inverseKin( init_pos_ee )
+tgt_pos  = dynSys.inverseKin( tgt_pos_ee )
+trj      = dynSys.inverseKin( trj_ee )
 
 pthDat   = exp.pathData
 
@@ -56,8 +62,9 @@ pthDat   = exp.pathData
 
 brain = Brain()
 
-# Number of neurons (for each subpopulation positive/negative)
-N = brain.nNeurPop
+# Number of neurons
+N    = brain.nNeurPop # For each subpopulation positive/negative
+nTot = 2*N*njt        # Total number of neurons
 
 # Precise or approximatesd motor control?
 preciseControl = brain.precCtrl
@@ -68,10 +75,28 @@ mc_param = brain._motCtx_param
 # Create motor cortex
 mc = MotorCortex(N, time_vect, trj, dynSys, pthDat, preciseControl, **mc_param)
 
+delay_fbk = brain.spine_param["fbk_delay"]
+wgt_spine = brain.spine_param["wgt_sensNeur_spine"]
 
-######## Create MUSIC output (to send motor commands)
 
-proxy_out = nest.Create('music_event_out_proxy', 1, params = {'port_name':'music_out'})
+### RECEIVING NETWORK
+
+sn_p=[]
+sn_n=[]
+for j in range(njt):
+    # Positive neurons
+    tmp_p = nest.Create ("parrot_neuron", N)
+    sn_p.append( PopView(tmp_p, time_vect, to_file=True, label=pthDat+'sens_fbk_'+str(j)+'_p') )
+    # Negative neurons
+    tmp_n = nest.Create ("parrot_neuron", N)
+    sn_n.append( PopView(tmp_n, time_vect, to_file=True, label=pthDat+'sens_fbk_'+str(j)+'_n') )
+
+
+######## Create MUSIC output
+
+msc = MusicCfg()
+
+proxy_out = nest.Create('music_event_out_proxy', 1, params = {'port_name':'mot_cmd_out'})
 
 ii=0
 for j in range(njt):
@@ -83,13 +108,33 @@ for j in range(njt):
         ii=ii+1
 
 
+# Creation of MUSIC input port with N input channels
+proxy_in = nest.Create ('music_event_in_proxy', nTot, params = {'port_name': 'fbk_in'})
+for i, n in enumerate(proxy_in):
+    nest.SetStatus([n], {'music_channel': i})
+
+# Divide channels based on function (using channel order)
+for j in range(njt):
+    #### Positive channels
+    idxSt_p = 2*N*j
+    idxEd_p = idxSt_p + N
+    nest.Connect( proxy_in[idxSt_p:idxEd_p], sn_p[j].pop, 'one_to_one', {"weight":wgt_spine, "delay":delay_fbk} )
+    #### Negative channels
+    idxSt_n = idxEd_p
+    idxEd_n = idxSt_n + N
+    nest.Connect( proxy_in[idxSt_n:idxEd_n], sn_n[j].pop, 'one_to_one', {"weight":wgt_spine, "delay":delay_fbk} )
+
+# We need to tell MUSIC, through NEST, that it's OK (due to the delay)
+# to deliver spikes a bit late. This is what makes the loop possible.
+nest.SetAcceptableLatency('fbk_in', delay_fbk-msc.const)
+
+
 ###################### SIMULATE
 # Simulate
 nest.Simulate(time_span)
 
 
 ############# PLOTTING
-
 
 # motCmd = mc.getMotorCommands()
 # fig, ax = plt.subplots(2,1)
