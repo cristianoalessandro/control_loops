@@ -28,7 +28,7 @@ timeMax = sim.timeMax/1e3               # Maximum time (translate into seconds)
 time    = np.arange(0,timeMax+res,res)  # Time vector
 n_time  = len(time)
 
-scale   = 10     # Scaling coefficient to translate spike rates into forces
+scale   = 10.0   # Scaling coefficient to translate spike rates into forces (must be >=1)
 bufSize = 10/1e3 # Buffer to calculate spike rate (seconds)
 
 
@@ -336,13 +336,14 @@ plt.plot(pos[:,0],pos[:,1],color='k')
 plt.plot(init_pos_ee[0],init_pos_ee[1],marker='o',color='blue')
 plt.plot(tgt_pos_ee[0],tgt_pos_ee[1],marker='o',color='red')
 plt.plot(pos[n_time-1,0],pos[n_time-1,1],marker='x',color='k')
+plt.axis('equal')
 plt.xlabel('position x (m)')
 plt.ylabel('position y (m)')
 plt.legend(['trajectory', 'init','target','final'])
 
 # Show sensory neurons
-for i in range(njt):
-    plotPopulation(time, sn_p[i], sn_n[i], title=lgd[i],buffer_size=0.015)
+# for i in range(njt):
+#     plotPopulation(time, sn_p[i], sn_n[i], title=lgd[i],buffer_size=0.015)
 
 
 plt.show()
