@@ -22,6 +22,10 @@ from settings import Experiment, Simulation, Brain, MusicCfg
 
 nest.Install("util_neurons_module")
 
+saveFig = False
+pathFig = './fig/'
+cond = 'ffwd_noFF_'
+
 
 ##################### SIMULATION ########################
 
@@ -88,22 +92,37 @@ se_param = brain.stEst_param
 se = StateEstimator(N, time_vect, dynSys, kpred, ksens, pthDat, **se_param)
 
 #### Connection Planner - Motor Cortex feedback (excitatory)
-wgt_plnr_mtxFbk = brain.connections["wgt_plnr_mtxFbk"]
+wgt_plnr_mtxFbk   = brain.connections["wgt_plnr_mtxFbk"]
+
+# Delay between planner and motor cortex feedback.
+# It needs to compensate for the delay introduced by the state estimator
+#delay_plnr_mtxFbk = brain.stEst_param["buf_sz"] # USE THIS WITH REAL STATE ESTIMATOR
+delay_plnr_mtxFbk = res                         # USE THIS WITH "FAKE" STATE ESTIMATOR
 
 for j in range(njt):
-    planner.pops_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_plnr_mtxFbk )
-    planner.pops_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_plnr_mtxFbk )
-    planner.pops_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_plnr_mtxFbk )
-    planner.pops_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_plnr_mtxFbk )
+    planner.pops_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_plnr_mtxFbk, d=delay_plnr_mtxFbk )
+    planner.pops_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_plnr_mtxFbk, d=delay_plnr_mtxFbk )
+    planner.pops_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_plnr_mtxFbk, d=delay_plnr_mtxFbk )
+    planner.pops_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_plnr_mtxFbk, d=delay_plnr_mtxFbk )
 
 #### Connection State Estimator - Motor Cortex feedback (Inhibitory)
 wgt_stEst_mtxFbk = brain.connections["wgt_stEst_mtxFbk"]
 
+# REAL STATE ESTIMATOR
+# To connect the output of the state estimator to the motor cortex feedback
 # for j in range(njt):
-#     se.out_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk )
-#     se.out_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk )
-#     se.out_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk )
-#     se.out_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk )
+#     se.out_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+#     se.out_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+#     se.out_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+#     se.out_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+
+# FAKE STATE ESTIMATOR
+# To connect the actual sensory input of the state estimator to the motor cortex
+for j in range(njt):
+    se.sens_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+    se.sens_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+    se.sens_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+    se.sens_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
 
 
 ##################### SPINAL CORD ########################
@@ -125,16 +144,16 @@ for j in range(njt):
 #### Connection Sensory feedback - State estimator (excitatory)
 wgt_spine_stEst = brain.connections["wgt_spine_stEst"]
 
-# for j in range(njt):
-#     sn_p[j].connect( se.sens_p[j], rule='one_to_one', w= wgt_spine_stEst )
-#     sn_n[j].connect( se.sens_n[j], rule='one_to_one', w=-wgt_spine_stEst )
+for j in range(njt):
+    sn_p[j].connect( se.sens_p[j], rule='one_to_one', w=wgt_spine_stEst, d=res )
+    sn_n[j].connect( se.sens_n[j], rule='one_to_one', w=wgt_spine_stEst, d=res )
 
 ### DIRECT FROM SENSORY TO MOTOR CORTEX
-for j in range(njt):
-    sn_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk )
-    sn_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk )
-    sn_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk )
-    sn_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk )
+# for j in range(njt):
+#     sn_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk )
+#     sn_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk )
+#     sn_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk )
+#     sn_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk )
 
 
 ##################### MUSIC CONFIG ########################
@@ -182,34 +201,47 @@ nest.Simulate(time_span)
 
 ############# PLOTTING
 
-
 lgd = ['x','y']
 
 # Positive
 fig, ax = plt.subplots(2,1)
 for i in range(njt):
     planner.pops_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='planner')
-    sn_p[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',label='sens')
-    plt.legend()
+    sn_p[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',label='sensory')
+    #se.out_p[i].plot_rate(time_vect,buffer_sz=5,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',linestyle=':', label='state pos')
+plt.legend()
+ax[i].set_xlabel("time (ms)")
 plt.suptitle("Positive")
+if saveFig:
+    plt.savefig(pathFig+cond+"plan_fbk_pos.png")
 
 # Negative
 fig, ax = plt.subplots(2,1)
 for i in range(njt):
     planner.pops_n[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='planner')
-    sn_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',label='sens')
+    sn_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',label='sensory')
+    #se.out_n[i].plot_rate(time_vect,buffer_sz=5,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',linestyle=':', label='state neg')
     plt.legend()
+ax[i].set_xlabel("time (ms)")
 plt.suptitle("Negative")
+if saveFig:
+    plt.savefig(pathFig+cond+"plan_fbk_neg.png")
 
 # # MC fbk
 for i in range(njt):
     plotPopulation(time_vect, mc.fbk_p[i],mc.fbk_n[i], title=lgd[i],buffer_size=10)
     plt.suptitle("MC fbk")
+    plt.xlabel("time (ms)")
+    if saveFig:
+        plt.savefig(pathFig+cond+"mtctx_fbk_"+lgd[i]+".png")
 
 # # MC ffwd
 for i in range(njt):
     plotPopulation(time_vect, mc.ffwd_p[i],mc.ffwd_n[i], title=lgd[i],buffer_size=10)
     plt.suptitle("MC ffwd")
+    plt.xlabel("time (ms)")
+    if saveFig:
+        plt.savefig(pathFig+cond+"mtctx_ffwd_"+lgd[i]+".png")
 
 plt.show()
 

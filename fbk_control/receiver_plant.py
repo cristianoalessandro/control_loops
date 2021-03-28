@@ -19,6 +19,11 @@ import ctypes
 ctypes.CDLL("libmpi.so", mode=ctypes.RTLD_GLOBAL)
 
 
+saveFig = False
+pathFig = './fig/'
+cond = 'ffwd_noFF_'
+
+
 ###################### SIMULATION ######################
 
 sim = Simulation()
@@ -311,16 +316,16 @@ np.savetxt( pthDat+"perturbation_j.csv", perturb_j, delimiter=',' )  # Perturbat
 
 ########################### PLOTTING ###########################
 
-lgd = ['x','y']
+lgd = ['x','y','des']
 
 plt.figure()
-#plt.plot(spkRate_net)
-plt.plot(inputCmd)
-plt.plot(inputDes,linestyle=':')
-plt.xlabel("time (ms)")
-plt.ylabel("spike rate positive - negative")
+plt.plot(time,inputCmd)
+plt.plot(time,inputDes,linestyle=':')
+plt.xlabel("time (s)")
+plt.ylabel("motor commands (N)")
 plt.legend(lgd)
-#plt.savefig("plant_in_pos-neg.png")
+if saveFig:
+    plt.savefig(pathFig+cond+"motCmd.png")
 
 # Joint space
 plt.figure()
@@ -329,6 +334,8 @@ plt.plot(time,trj,linestyle=':')
 plt.xlabel('time (s)')
 plt.ylabel('position (m)')
 plt.legend(['x','y','x_des','y_des'])
+if saveFig:
+    plt.savefig(pathFig+cond+"position_joint.png")
 
 # End-effector space
 plt.figure()
@@ -340,10 +347,11 @@ plt.axis('equal')
 plt.xlabel('position x (m)')
 plt.ylabel('position y (m)')
 plt.legend(['trajectory', 'init','target','final'])
+if saveFig:
+    plt.savefig(pathFig+cond+"position_ee.png")
 
 # Show sensory neurons
 # for i in range(njt):
 #     plotPopulation(time, sn_p[i], sn_n[i], title=lgd[i],buffer_size=0.015)
-
 
 plt.show()

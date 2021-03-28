@@ -119,8 +119,8 @@ class PopView:
         self.time_vect = time_vect
         self.trial_len = time_vect[ len(time_vect)-1 ]
 
-    def connect(self, other, rule='one_to_one', w=1.0):
-        nest.Connect(self.pop, other.pop, rule, syn_spec={'weight': w})
+    def connect(self, other, rule='one_to_one', w=1.0, d=0.1):
+        nest.Connect(self.pop, other.pop, rule, syn_spec={'weight': w, "delay":d})
 
     def slice(self, start, end=None, step=None):
         return PopView(self.pop[start:end:step])

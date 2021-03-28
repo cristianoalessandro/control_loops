@@ -29,10 +29,12 @@ class Experiment:
         # Initial and target position (end-effector space)
         self._init_pos = np.array([0.0,0.0])
         self._tgt_pos  = np.array([0.0,0.5])
+        #self._tgt_pos  = np.array([0.25,0.43])
+        #self._tgt_pos  = np.array([-0.25,0.43])
 
         # Perturbation
-        self._frcFld_angle = 90
-        self._frcFld_k     = 5
+        self._frcFld_angle = -90
+        self._frcFld_k     = 3
 
         # Dynamical system to be controlled (mass and dyn sys object)
         self._m          = 2.0
@@ -92,7 +94,7 @@ class Brain():
     def __init__(self):
 
         # Number of neurons for each subpopulation (positive/negative)
-        self._nNeurPop = 20
+        self._nNeurPop = 50
 
         self.initPlanner()        # Initialize planner settings
         self.initMotorCortex()    # Initialize motor cortex settings
@@ -113,25 +115,25 @@ class Brain():
 
         # Population parameteres
         self._plan_param = {
-            "base_rate": 0.0,
-            "kp": 50.0
+            "base_rate":  0.0,
+            "kp":      1200.0
             }
 
     def initMotorCortex(self):
 
         # If true, motor cortex computes precise motor commands using inv. dynamics
-        self._precCtrl = True
+        self._precCtrl = False
 
         self._motCtx_param = {
             "ffwd_base_rate":  0.0, # Feedforward neurons
             "ffwd_kp":        10.0,
             "fbk_base_rate":   0.0, # Feedback neurons
-            "fbk_kp":         10.0,
+            "fbk_kp":          3.0,
             "out_base_rate":   0.0, # Output neurons
             "out_kp":          1.0,
             "wgt_ffwd_out":    1.0, # Connection weight from ffwd to output neurons (must be positive)
             "wgt_fbk_out":     1.0, # Connection weight from fbk to output neurons (must be positive)
-            "buf_sz":         50.0  # Size of the buffer to compute spike rate in basic_neurons (ms)
+            "buf_sz":         20.0  # Size of the buffer to compute spike rate in basic_neurons (ms)
             }
 
     def initStateEstimator(self):
@@ -140,14 +142,10 @@ class Brain():
         self._k_sensory    = 1.0
 
         self._stEst_param = {
-            "pred_base_rate": 0.0,  # Prediction neurons (receive sensory prediction)
-            "pred_kp":        1.0,
-            "sens_base_rate": 0.0,  # Feedback neurons (receive sensory feedback)
-            "sens_kp":        1.0,
             "out_base_rate":  0.0,   # Summation neurons
             "out_kp":         1.0,
             "wgt_scale":      1.0,   # Scale of connection weight from input to output populations (must be positive)
-            "buf_sz":        50.0    # Size of the buffer to compute spike rate in basic_neurons (ms)
+            "buf_sz":        20.0    # Size of the buffer to compute spike rate in basic_neurons (ms)
             }
 
     def initSpine(self):
@@ -158,7 +156,7 @@ class Brain():
             "wgt_motCtx_motNeur" : 1.0, # Weight motor cortex - motor neurons
             "wgt_sensNeur_spine" : 1.0, # Weight sensory neurons - spine
             "sensNeur_base_rate":  0.0, # Sensory neurons baseline rate
-            "sensNeur_kp":        50.0, # Sensory neurons gain
+            "sensNeur_kp":      1200.0, # Sensory neurons gain
             "fbk_delay":           0.1  # It cannot be less than resolution (ms)
             }
 

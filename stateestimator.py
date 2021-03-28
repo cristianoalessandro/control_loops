@@ -24,10 +24,6 @@ class StateEstimator:
 
         # General parameters of neurons
         self._param_neurons = {
-            "pred_base_rate": 0.0,  # Prediction neurons (receive sensory prediction)
-            "pred_kp":        1.0,
-            "sens_base_rate": 0.0,  # Feedback neurons (receive sensory feedback)
-            "sens_kp":        1.0,
             "out_base_rate":  0.0,   # Summation neurons
             "out_kp":         1.0,
             "wgt_scale":      1.0,   # Scale of connection weight from input to output populations (must be positive)
@@ -75,16 +71,6 @@ class StateEstimator:
     ######################## Initialize neural network #########################
     def init_neurons(self, numNeurons, params, numJoints, time_vect, pathData):
 
-        par_pred = {
-            "base_rate": params['pred_base_rate'],
-            "kp": params['pred_kp']
-        }
-
-        par_sens = {
-            "base_rate": params['sens_base_rate'],
-            "kp": params['sens_kp']
-        }
-
         par_out = {
             "base_rate": params['out_base_rate'],
             "kp": params['out_kp']
@@ -99,6 +85,8 @@ class StateEstimator:
         self.out_p  = []
         self.out_n  = []
 
+        res = time_vect[1]-time_vect[0]
+
         # Create populations
         for i in range(numJoints):
 
@@ -112,16 +100,6 @@ class StateEstimator:
             tmp_pop_n = nest.Create("parrot_neuron", numNeurons)
             self.pred_n.append( PopView(tmp_pop_n,time_vect) )
 
-            # # Positive population (joint i)
-            # tmp_pop_p = nest.Create("basic_neuron", n=numNeurons, params=par_pred)
-            # nest.SetStatus(tmp_pop_p, {"pos": True, "buffer_size": buf_sz})
-            # self.pred_p.append( PopView(tmp_pop_p,time_vect) )
-            #
-            # # Negative population (joint i)
-            # tmp_pop_n = nest.Create("basic_neuron", n=numNeurons, params=par_pred)
-            # nest.SetStatus(tmp_pop_n, {"pos": False, "buffer_size": buf_sz})
-            # self.pred_n.append( PopView(tmp_pop_n,time_vect) )
-
             ############ SENSORY FEEDBACK POPULATION ############
 
             # Positive population (joint i)
@@ -132,45 +110,31 @@ class StateEstimator:
             tmp_pop_n = nest.Create("parrot_neuron", numNeurons)
             self.sens_n.append( PopView(tmp_pop_n,time_vect) )
 
-            # # Positive population (joint i)
-            # tmp_pop_p = nest.Create("basic_neuron", n=numNeurons, params=par_sens)
-            # nest.SetStatus(tmp_pop_p, {"pos": True, "buffer_size": buf_sz})
-            # self.sens_p.append( PopView(tmp_pop_p,time_vect) )
-            #
-            # # Negative population (joint i)
-            # tmp_pop_n = nest.Create("basic_neuron", n=numNeurons, params=par_sens)
-            # nest.SetStatus(tmp_pop_n, {"pos": False, "buffer_size": buf_sz})
-            # self.sens_n.append( PopView(tmp_pop_n,time_vect) )
-
             ############ OUTPUT POPULATION ############
 
             # Positive population (joint i)
-            #filename = pathData+"se_out_p_"+str(i)
             tmp_pop_p = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_p, {"pos": True, "buffer_size": buf_sz})
             self.out_p.append( PopView(tmp_pop_p,time_vect) )
-            #self.out_p.append( PopView(tmp_pop_p,time_vect,to_file=True,label=filename) )
 
             # Negative population (joint i)
-            #filename = pathData+"se_out_n_"+str(i)
             tmp_pop_n = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_n, {"pos": False, "buffer_size": buf_sz})
             self.out_n.append( PopView(tmp_pop_n,time_vect) )
-            #self.out_n.append( PopView(tmp_pop_n,time_vect,to_file=True,label=filename) )
 
             ###### CONNECT FFWD AND FBK POULATIONS TO OUT POPULATION ######
             # Populations of each joint are connected together according to connection
             # rules and network topology. There is no connections across joints.
 
-            self.pred_p[i].connect(self.out_p[i], rule='one_to_one', w= params['wgt_pred_out'])
-            self.pred_p[i].connect(self.out_n[i], rule='one_to_one', w= params['wgt_pred_out'])
-            self.pred_n[i].connect(self.out_p[i], rule='one_to_one', w=-params['wgt_pred_out'])
-            self.pred_n[i].connect(self.out_n[i], rule='one_to_one', w=-params['wgt_pred_out'])
+            self.pred_p[i].connect(self.out_p[i], rule='one_to_one', w= params['wgt_pred_out'], d=res)
+            self.pred_p[i].connect(self.out_n[i], rule='one_to_one', w= params['wgt_pred_out'], d=res)
+            self.pred_n[i].connect(self.out_p[i], rule='one_to_one', w=-params['wgt_pred_out'], d=res)
+            self.pred_n[i].connect(self.out_n[i], rule='one_to_one', w=-params['wgt_pred_out'], d=res)
 
-            self.sens_p[i].connect(self.out_p[i], rule='one_to_one', w= params['wgt_sens_out'])
-            self.sens_p[i].connect(self.out_n[i], rule='one_to_one', w= params['wgt_sens_out'])
-            self.sens_n[i].connect(self.out_p[i], rule='one_to_one', w=-params['wgt_sens_out'])
-            self.sens_n[i].connect(self.out_n[i], rule='one_to_one', w=-params['wgt_sens_out'])
+            self.sens_p[i].connect(self.out_p[i], rule='one_to_one', w= params['wgt_sens_out'], d=res)
+            self.sens_p[i].connect(self.out_n[i], rule='one_to_one', w= params['wgt_sens_out'], d=res)
+            self.sens_n[i].connect(self.out_p[i], rule='one_to_one', w=-params['wgt_sens_out'], d=res)
+            self.sens_n[i].connect(self.out_n[i], rule='one_to_one', w=-params['wgt_sens_out'], d=res)
 
 
     ######################## Getters and Setters #########################
