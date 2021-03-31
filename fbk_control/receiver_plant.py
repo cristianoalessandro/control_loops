@@ -21,7 +21,7 @@ ctypes.CDLL("libmpi.so", mode=ctypes.RTLD_GLOBAL)
 
 saveFig = False
 pathFig = './fig/'
-cond = 'ffwd_noFF_'
+cond = 'fbk_delay_FF_'
 
 
 ###################### SIMULATION ######################
@@ -205,6 +205,8 @@ step    = 0 # simulation step
 
 tickt = runtime.time()
 while tickt <= timeMax:
+
+    #print(tickt)
 
     # Position and velocity at the beginning of the timestep
     pos_j[step,:] = dynSys.pos                      # Joint space

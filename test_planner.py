@@ -18,8 +18,8 @@ pthDat = "./data/"
 
 # End effector space
 pos_i  = np.array([0.0,0.0]) # Initial position
-tgt    = np.array([0.5,0.5]) # Desired target
-final  = np.array([0.2,0.8]) # Exemplary reached target (this will be the output of a simulation)
+tgt    = np.array([0.25,0.43]) # Desired target
+final  = np.array([0.25,0.43]) # Exemplary reached target (this will be the output of a simulation)
 kpl    = 1.0                 # Coefficient across-trial plan adjustement
 
 # Dynamical system
@@ -89,8 +89,8 @@ plt.legend(lgd)
 plt.grid()
 
 if flagSaveFig:
-    plt.savefig(figPath+"planner_trj_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+".png",format="png")
-    plt.savefig(figPath+"planner_trj_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+".svg",format="svg")
+    plt.savefig(figPath+"planner_trj_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+"_2.png",format="png")
+    #plt.savefig(figPath+"planner_trj_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+".svg",format="svg")
 
 
 
@@ -104,7 +104,8 @@ max_y = np.empty(shape=(njt,2))
 axv = []
 fgv = []
 for i in range(njt):
-    fig, ax = plotPopulation(time_vect, pos[i], neg[i], lgd[i] )
+    fig, ax = plotPopulation(time_vect, pos[i], neg[i], lgd[i], buffer_size=10 )
+    plt.xlabel('time (ms)')
     fgv.append(fig)
     axv.append(ax)
     max_y[i,:] = plt.gca().get_ylim()
@@ -115,7 +116,7 @@ for i in range(njt):
     if i==1:
         axv[i][1].set_ylim(top=30)
     if flagSaveFig:
-        fgv[i].savefig(figPath+"planner_neural_j"+str(i)+"_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+"_noUniform.png",format="png")
+        fgv[i].savefig(figPath+"planner_neural_j"+str(i)+"_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+"_noUniform_2.png",format="png")
         #fgv[i].savefig(figPath+"planner_neural_j"+str(i)+"_i_"+str(pos_i)+"_tgt_"+str(tgt)+"_err_"+str(err)+".svg",format="svg")
 
 plt.show()

@@ -33,12 +33,12 @@ class Experiment:
         #self._tgt_pos  = np.array([-0.25,0.43])
 
         # Perturbation
-        self._frcFld_angle = -90
-        self._frcFld_k     = 3
+        self._frcFld_angle = 90  # Angle of the perturbation force wrt movement velocity
+        self._frcFld_k     = 0   # Gain of the perturbation force wrt movement velocity
 
         # Dynamical system to be controlled (mass and dyn sys object)
-        self._m          = 2.0
-        self._dynSys     = PointMass(mass=self._m)
+        self._m          = 2.0                                     # Mass (kg)
+        self._dynSys     = PointMass(mass=self._m)                 # Point mass
         self._dynSys.pos = self._dynSys.inverseKin(self._init_pos) # Initial condition (position)
         self._dynSys.vel = np.array([0.0,0.0])                     # Initial condition (velocity)
 
@@ -115,8 +115,8 @@ class Brain():
 
         # Population parameteres
         self._plan_param = {
-            "base_rate":  0.0,
-            "kp":      1200.0
+            "base_rate":  0.0, # Base rate
+            "kp":      1200.0  # Gain
             }
 
     def initMotorCortex(self):
@@ -138,19 +138,19 @@ class Brain():
 
     def initStateEstimator(self):
 
-        self._k_prediction = 0.0
-        self._k_sensory    = 1.0
+        self._k_prediction = 0.0     # Reiability of the prediction input of the state estimator
+        self._k_sensory    = 1.0     # Reiability of the sensory feedback input of the state estimator
 
         self._stEst_param = {
-            "out_base_rate":  0.0,   # Summation neurons
-            "out_kp":         1.0,
+            "out_base_rate":  0.0,   # Summation neurons (i.e. basic_neurons)
+            "out_kp":         1.0,   # Gain of the output neurons
             "wgt_scale":      1.0,   # Scale of connection weight from input to output populations (must be positive)
             "buf_sz":        20.0    # Size of the buffer to compute spike rate in basic_neurons (ms)
             }
 
     def initSpine(self):
 
-        self._firstIdSensNeurons = 0
+        self._firstIdSensNeurons = 0    # First ID of the sensory neurons (keep it at zero)
 
         self._spine_param = {
             "wgt_motCtx_motNeur" : 1.0, # Weight motor cortex - motor neurons
@@ -209,14 +209,7 @@ class Brain():
 class MusicCfg():
 
     def __init__(self):
-
         self._const = 1e-6 # Constant to subtract to avoid rounding errors (ms)
-
-        self._input_latency = 0.0001 # seconds
-
-    @property
-    def input_latency(self):
-        return self._input_latency
 
     @property
     def const(self):

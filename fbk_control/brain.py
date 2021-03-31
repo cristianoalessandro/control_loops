@@ -24,7 +24,7 @@ nest.Install("util_neurons_module")
 
 saveFig = False
 pathFig = './fig/'
-cond = 'ffwd_noFF_'
+cond = 'fbk_delay_FF_'
 
 
 ##################### SIMULATION ########################
@@ -110,19 +110,19 @@ wgt_stEst_mtxFbk = brain.connections["wgt_stEst_mtxFbk"]
 
 # REAL STATE ESTIMATOR
 # To connect the output of the state estimator to the motor cortex feedback
-# for j in range(njt):
-#     se.out_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
-#     se.out_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
-#     se.out_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
-#     se.out_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+for j in range(njt):
+    se.out_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+    se.out_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+    se.out_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+    se.out_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
 
 # FAKE STATE ESTIMATOR
 # To connect the actual sensory input of the state estimator to the motor cortex
-for j in range(njt):
-    se.sens_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
-    se.sens_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
-    se.sens_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
-    se.sens_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+# for j in range(njt):
+#     se.sens_p[j].connect( mc.fbk_p[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+#     se.sens_p[j].connect( mc.fbk_n[j], rule='one_to_one', w= wgt_stEst_mtxFbk, d=res )
+#     se.sens_n[j].connect( mc.fbk_p[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
+#     se.sens_n[j].connect( mc.fbk_n[j], rule='one_to_one', w=-wgt_stEst_mtxFbk, d=res )
 
 
 ##################### SPINAL CORD ########################
@@ -208,7 +208,7 @@ fig, ax = plt.subplots(2,1)
 for i in range(njt):
     planner.pops_p[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='planner')
     sn_p[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',label='sensory')
-    #se.out_p[i].plot_rate(time_vect,buffer_sz=5,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',linestyle=':', label='state pos')
+    se.out_p[i].plot_rate(time_vect,buffer_sz=5,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',linestyle=':', label='state pos')
 plt.legend()
 ax[i].set_xlabel("time (ms)")
 plt.suptitle("Positive")
@@ -220,7 +220,7 @@ fig, ax = plt.subplots(2,1)
 for i in range(njt):
     planner.pops_n[i].plot_rate(time_vect,ax=ax[i],bar=False,color='r',label='planner')
     sn_n[i].plot_rate(time_vect,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',label='sensory')
-    #se.out_n[i].plot_rate(time_vect,buffer_sz=5,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',linestyle=':', label='state neg')
+    se.out_n[i].plot_rate(time_vect,buffer_sz=5,ax=ax[i],bar=False,title=lgd[i]+" (Hz)",color='b',linestyle=':', label='state neg')
     plt.legend()
 ax[i].set_xlabel("time (ms)")
 plt.suptitle("Negative")
