@@ -37,3 +37,10 @@ def plotPopulation(time_v, pop_pos, pop_neg, title='',buffer_size=15):
     ax[0].set_ylim( bottom=-(len(pop_neg.pop)+1), top=len(pop_pos.pop)+1 )
 
     return fig, ax
+
+def AddPause(signal, pause_len, res):    
+    # Add a pause at the end of the signal pattern
+    signal_list = list(signal)
+    signal_list.extend([0]*int(pause_len/res))
+
+    return np.array(signal_list)

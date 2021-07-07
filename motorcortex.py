@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 import nest
 import trajectories as tj
 from population_view import PopView
+from util import AddPause
 
 class MotorCortex:
 
     ############## Constructor (plant value is just for testing) ##############
-    def __init__(self, numNeurons, time_vect, traj_joint, plant, pathData="./data/", precise=False, **kwargs):
+    def __init__(self, numNeurons, time_vect, traj_joint, plant, pathData="./data/", precise=False, pause_len = 0.0, **kwargs):
 
         # Path where to save the data file
         self.pathData = pathData
@@ -23,6 +24,9 @@ class MotorCortex:
         # If True, forward motor cortex generate precise motor commands
         # through inverse dynamics
         self.precise = precise
+
+        # Time pause after task execution
+        self.pause_len = pause_len
 
         ### Initialize analog signals
         self.init_analog(time_vect, traj_joint, plant)
@@ -137,12 +141,19 @@ class MotorCortex:
         if nj!=self.numJoints:
             raise Exception("Number of joint is different from number of columns")
 
+        # Include pause into the motor commands
+        res = nest.GetKernelStatus({"resolution"})[0]
+        time_bins = commands.shape[0] + int(self.pause_len/res)
+        commands_pause = np.zeros((time_bins, commands.shape[1])) 
+        for i in range(nj):
+            commands_pause[:,i] = AddPause(commands[:,i], self.pause_len, res)
+
         # save joint trajectories into files
         # NOTE: THIS OVERWRITES EXISTING TRAJECTORIES
         for i in range(nj):
             cmd_file = self.pathData + "joint_cmd_"+str(i)+".dat"
             a_file = open(cmd_file, "w")
-            np.savetxt( a_file, commands[:,i] )
+            np.savetxt( a_file, commands_pause[:,i] )
             a_file.close()
 
 
@@ -218,6 +229,7 @@ class MotorCortex:
 
             # Positive population (joint i)
             filename = self.pathData+"mc_out_p_"+str(i)
+            filename = "mc_out_p_"+str(i)
             tmp_pop_p = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             #tmp_pop_p = nest.Create("diff_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_p, {"pos": True, "buffer_size": buf_sz})
@@ -226,6 +238,7 @@ class MotorCortex:
 
             # Negative population (joint i)
             filename = self.pathData+"mc_out_n_"+str(i)
+            filename = "mc_out_n_"+str(i)
             tmp_pop_n = nest.Create("basic_neuron", n=numNeurons, params=par_out)
             #tmp_pop_n = nest.Create("diff_neuron", n=numNeurons, params=par_out)
             nest.SetStatus(tmp_pop_n, {"pos": False, "buffer_size": buf_sz})

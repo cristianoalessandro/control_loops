@@ -12,6 +12,49 @@ import nest
 import trajectories as tj
 from population_view import PopView
 
+class StateEstimator_mass:
+
+    ############## Constructor  ##############
+    def __init__(self, numNeurons, time_vect, plant, pathData="./data/", **kwargs):
+        
+        self.pathData = pathData
+
+        # Numerosity of each subpopulation
+        self._numNeuronsPop = numNeurons
+
+        # General parameters of neurons
+        self._param_neurons = {
+            "kp":           1.0,   # Gain
+            "base_rate":    0.0,   # Baseline rate
+            "buffer_size":  5.0    # Size of the buffer
+            }
+        self.param_neurons.update(kwargs)
+
+        # Create populations
+        numJoints = plant.numVariables()
+        self.pops_p = []
+        self.pops_n = []
+        for i in range(numJoints):
+
+            tmp_pop_p = nest.Create("state_neuron", numNeurons)
+            nest.SetStatus(tmp_pop_p, self._param_neurons)
+            nest.SetStatus(tmp_pop_p, {"pos": True})
+            self.pops_p.append( PopView(tmp_pop_p, time_vect) )
+
+            tmp_pop_n = nest.Create("state_neuron", numNeurons)
+            nest.SetStatus(tmp_pop_n, self._param_neurons)
+            nest.SetStatus(tmp_pop_p, {"pos": False})
+            self.pops_n.append( PopView(tmp_pop_n, time_vect) )
+            
+    @property
+    def numNeuronsPop(self):
+        return self._numNeuronsPop
+
+    @property
+    def param_neurons(self):
+        return self._param_neurons
+
+
 class StateEstimator:
 
     ############## Constructor (plant value is just for testing) ##############

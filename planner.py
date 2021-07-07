@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 import nest
 import trajectories as tj
 from population_view import PopView
+from util import AddPause
 
 class Planner:
 
     #### Constructor (plant value is just for testing)
-    def __init__(self, n, time_vect, target, plant, kPlan=1.0, pathData="./data/", **kwargs):
+    def __init__(self, n, time_vect, target, plant, kPlan=1.0, pathData="./data/", pause_len=0.0, **kwargs):
 
         # Path where to save the data file
         self.pathData = pathData
@@ -31,6 +32,9 @@ class Planner:
         # Time vector
         self.time_vect = time_vect
         self.time_span = self.time_vect[ len(self.time_vect)-1 ]
+
+        # Time pause after task execution
+        self.pause_len = pause_len
 
         # Desired and planned target location, and target error in end-effector space
         self.target_des = target
@@ -125,12 +129,19 @@ class Planner:
         if nj!=self.numJoints:
             raise Exception("Number of joint is different from number of columns")
 
+        # Include pause into the trajectory
+        res = nest.GetKernelStatus({"resolution"})[0]
+        time_bins = trj_j.shape[0] + int(self.pause_len/res)
+        trj_j_pause = np.zeros((time_bins, trj_j.shape[1])) 
+        for i in range(nj):
+            trj_j_pause[:,i] = AddPause(trj_j[:,i], self.pause_len, res)
+
         # save joint trajectories into files
         # NOTE: THIS OVERWRITES EXISTING TRAJECTORIES
         for i in range(nj):
             traj_file = self.pathData + "joint" + str(i) + ".dat"
             a_file = open(traj_file, "w")
-            np.savetxt( a_file, trj_j[:,i] )
+            np.savetxt( a_file, trj_j_pause[:,i] )
             a_file.close()
 
-        return trj_j
+        return trj_j_pause
