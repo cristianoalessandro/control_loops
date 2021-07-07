@@ -19,7 +19,7 @@ import ctypes
 ctypes.CDLL("libmpi.so", mode=ctypes.RTLD_GLOBAL)
 
 
-saveFig = False
+saveFig = True
 pathFig = './fig/'
 cond = 'fbk_delay_FF_'
 
@@ -28,10 +28,14 @@ cond = 'fbk_delay_FF_'
 
 sim = Simulation()
 
-res     = sim.resolution/1e3            # Resolution (translate into seconds)
-timeMax = sim.timeMax/1e3               # Maximum time (translate into seconds)
-time    = np.arange(0,timeMax+res,res)  # Time vector
-n_time  = len(time)
+res          = sim.resolution/1e3            # Resolution (translate into seconds)
+timeMax      = sim.timeMax/1e3               # Maximum time (translate into seconds)
+time         = np.arange(0,timeMax+res,res)  # Time vector
+time_pause   = sim.timePause/1e3             # Pause time (translate into seconds)
+n_trial      = sim.n_trials
+exp_duration = (timeMax+time_pause)*n_trial
+time_tot     = np.arange(0,exp_duration,res)
+n_time       = len(time_tot)
 
 scale   = 10.0   # Scaling coefficient to translate spike rates into forces (must be >=1)
 bufSize = 10/1e3 # Buffer to calculate spike rate (seconds)
@@ -91,7 +95,7 @@ msc = MusicCfg()
 
 # Compute the acceptable latency (AL) of this input port to make sure that
 # Sum(ALs)>=Sum(ITIs). ITI stands for Inter Tick Intervals.
-accLat = 2*res-(delay_fbk-msc.const/1e3)
+accLat = 2*res-(0.0001-msc.const/1e3)
 # If AL<0, set it to zero (this will satisfy the relationship above)
 if accLat<0:
     accLat=0
@@ -204,35 +208,42 @@ runtime = music.Runtime(setup, res)
 step    = 0 # simulation step
 
 tickt = runtime.time()
-while tickt <= timeMax:
+while tickt < exp_duration:
 
     #print(tickt)
-
+    
     # Position and velocity at the beginning of the timestep
     pos_j[step,:] = dynSys.pos                      # Joint space
     vel_j[step,:] = dynSys.vel
     pos[step,:]   = dynSys.forwardKin( dynSys.pos ) # End-effector space
     vel[step,:]   = dynSys.forwardKin( dynSys.vel )
 
-    # Send sensory feedback and compute input commands for this timestep
-    buf_st = tickt-bufSize # Start of buffer
-    buf_ed = tickt         # End of buffer
-    for i in range(njt):
-        # Generate and send sensory feedback spikes given plan position
-        sn_p[i].update(pos_j[step,i], res, tickt)
-        sn_n[i].update(pos_j[step,i], res, tickt)
-        # Compute input commands
-        spkRate_pos[step,i], c = computeRate(spikes_pos[i], w, N, buf_st, buf_ed)
-        spkRate_neg[step,i], c = computeRate(spikes_neg[i], w, N, buf_st, buf_ed)
-        spkRate_net[step,i]    = spkRate_pos[step,i] - spkRate_neg[step,i]
-        inputCmd[step,i]       = spkRate_net[step,i] / scale
+    #TODO devo resettare posizione e velocità all'inizio di ogni trial 
+    # (controllare se ci sono altre cose da resettare)
+    if tickt%(timeMax+time_pause) >= timeMax:
+        dynSys.pos = dynSys.inverseKin(exp.init_pos) # Initial condition (position)
+        dynSys.vel = np.array([0.0,0.0])             # Initial condition (velocity)
 
-    perturb[step,:]      = pt.curledForceField(vel[step,:], angle, k)                     # End-effector forces
-    perturb_j[step,:]    = np.matmul( dynSys.jacobian(pos_j[step,:]) , perturb[step,:] )  # Torques
-    inputCmd_tot[step,:] = inputCmd[step,:] + perturb_j[step,:]                           # Total torques
+    else:
+        # Send sensory feedback and compute input commands for this timestep
+        buf_st = tickt-bufSize # Start of buffer
+        buf_ed = tickt         # End of buffer
+        for i in range(njt):
+            # Generate and send sensory feedback spikes given plan position
+            sn_p[i].update(pos_j[step,i], res, tickt)
+            sn_n[i].update(pos_j[step,i], res, tickt)
+            # Compute input commands
+            spkRate_pos[step,i], c = computeRate(spikes_pos[i], w, N, buf_st, buf_ed)
+            spkRate_neg[step,i], c = computeRate(spikes_neg[i], w, N, buf_st, buf_ed)
+            spkRate_net[step,i]    = spkRate_pos[step,i] - spkRate_neg[step,i]
+            inputCmd[step,i]       = spkRate_net[step,i] / scale
 
-    # Integrate dynamical system
-    dynSys.integrateTimeStep(inputCmd_tot[step,:], res)
+        perturb[step,:]      = pt.curledForceField(vel[step,:], angle, k)                     # End-effector forces
+        perturb_j[step,:]    = np.matmul( dynSys.jacobian(pos_j[step,:]) , perturb[step,:] )  # Torques
+        inputCmd_tot[step,:] = inputCmd[step,:] + perturb_j[step,:]                           # Total torques
+
+        # Integrate dynamical system
+        dynSys.integrateTimeStep(inputCmd_tot[step,:], res)
 
     step = step+1
     runtime.tick()
@@ -321,7 +332,7 @@ np.savetxt( pthDat+"perturbation_j.csv", perturb_j, delimiter=',' )  # Perturbat
 lgd = ['x','y','des']
 
 plt.figure()
-plt.plot(time,inputCmd)
+plt.plot(time_tot,inputCmd)
 plt.plot(time,inputDes,linestyle=':')
 plt.xlabel("time (s)")
 plt.ylabel("motor commands (N)")
@@ -331,7 +342,7 @@ if saveFig:
 
 # Joint space
 plt.figure()
-plt.plot(time,pos_j)
+plt.plot(time_tot,pos_j)
 plt.plot(time,trj,linestyle=':')
 plt.xlabel('time (s)')
 plt.ylabel('position (m)')
@@ -341,16 +352,34 @@ if saveFig:
 
 # End-effector space
 plt.figure()
-plt.plot(pos[:,0],pos[:,1],color='k')
+trial_delta = int((timeMax+time_pause)/res)
+task_steps = int((timeMax)/res)
+errors = []
+for trial in range(n_trial):
+    start = trial*trial_delta
+    end = start + task_steps
+    if trial >= 10:
+        style = 'k:'
+    else:
+        style = 'k'
+    plt.plot(pos[start:end,0],pos[start:end,1],style)
+    plt.plot(pos[end,0],pos[end,1],marker='x',color='k')
+    errors.append(np.sqrt((pos[end,0] -tgt_pos_ee[0])**2 + (pos[end,1] - tgt_pos_ee[1])**2))
 plt.plot(init_pos_ee[0],init_pos_ee[1],marker='o',color='blue')
 plt.plot(tgt_pos_ee[0],tgt_pos_ee[1],marker='o',color='red')
-plt.plot(pos[n_time-1,0],pos[n_time-1,1],marker='x',color='k')
 plt.axis('equal')
 plt.xlabel('position x (m)')
 plt.ylabel('position y (m)')
 plt.legend(['trajectory', 'init','target','final'])
 if saveFig:
     plt.savefig(pathFig+cond+"position_ee.png")
+
+plt.figure()
+plt.plot(errors)
+plt.xlabel('Trial')
+plt.ylabel('Error (m)')
+if saveFig:
+    plt.savefig(pathFig+cond+"error_ee.png")
 
 # Show sensory neurons
 # for i in range(njt):
