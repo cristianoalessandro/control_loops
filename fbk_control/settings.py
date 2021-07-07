@@ -16,6 +16,7 @@ sys.path.insert(1, '../')
 
 from pointMass import PointMass
 import perturbation as pt
+import os
 
 
 ####################################################################
@@ -28,7 +29,7 @@ class Experiment:
 
         # Initial and target position (end-effector space)
         self._init_pos = np.array([0.0,0.0])
-        self._tgt_pos  = np.array([0.0,0.5])
+        self._tgt_pos  = np.array([1.0,0.5])
         #self._tgt_pos  = np.array([0.25,0.43])
         #self._tgt_pos  = np.array([-0.25,0.43])
 
@@ -42,6 +43,10 @@ class Experiment:
         self._dynSys.pos = self._dynSys.inverseKin(self._init_pos) # Initial condition (position)
         self._dynSys.vel = np.array([0.0,0.0])                     # Initial condition (velocity)
 
+    def remove_files(self):
+        for f in os.listdir(self._pathData):
+            if '.gdf' in f or '.dat' in f:
+                os.remove(self._pathData+f)
 
     @property
     def pathData(self):
@@ -77,7 +82,13 @@ class Simulation():
         self._resolution = 0.1
 
         # Simulation time (milliseconds)
-        self._timeMax = 1000.0
+        self._timeMax = 500.0
+
+        # Pause after movement (milliseconds)
+        self._timePause = 200.0
+
+        # Number of trials
+        self._n_trials = 2
 
     @property
     def resolution(self):
@@ -87,6 +98,14 @@ class Simulation():
     def timeMax(self):
         return self._timeMax
 
+    @property
+    def timePause(self):
+        return self._timePause
+    
+    @property
+    def n_trials(self):
+        return self._n_trials
+
 
 ####################################################################
 class Brain():
@@ -95,6 +114,9 @@ class Brain():
 
         # Number of neurons for each subpopulation (positive/negative)
         self._nNeurPop = 50
+
+        # Which joint is controlled by the cerebellum (0 = x, 1 = y)
+        self._cerebellum_controlled_joint = 0
 
         self.initPlanner()        # Initialize planner settings
         self.initMotorCortex()    # Initialize motor cortex settings
@@ -128,7 +150,7 @@ class Brain():
             "ffwd_base_rate":  0.0, # Feedforward neurons
             "ffwd_kp":        10.0,
             "fbk_base_rate":   0.0, # Feedback neurons
-            "fbk_kp":          3.0,
+            "fbk_kp":          0.3, # 0.1 se bidirezionale; 0.01 se unidirezionale
             "out_base_rate":   0.0, # Output neurons
             "out_kp":          1.0,
             "wgt_ffwd_out":    1.0, # Connection weight from ffwd to output neurons (must be positive)
@@ -157,12 +179,16 @@ class Brain():
             "wgt_sensNeur_spine" : 1.0, # Weight sensory neurons - spine
             "sensNeur_base_rate":  0.0, # Sensory neurons baseline rate
             "sensNeur_kp":      1200.0, # Sensory neurons gain
-            "fbk_delay":           0.1  # It cannot be less than resolution (ms)
+            "fbk_delay":           80.0  # It cannot be less than resolution (ms) [0.1 oppure 80.0]
             }
 
     @property
     def nNeurPop(self):
         return self._nNeurPop
+
+    @property
+    def cerebellum_controlled_joint(self):
+        return self._cerebellum_controlled_joint
 
     @property
     def connections(self):
